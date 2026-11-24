@@ -34,18 +34,21 @@ MICROSD = (14.73, 25.74, 3.29, 4.29)   # card under the board, sticks out on +Y
 # --- Case parameters ---
 WALL = 2.0
 ROOF = 2.0
-PLATE = 3.0
+PLATE = 3.5
 PLATE_TOP_Z = PCB_BOTTOM_Z - 4.0
-SIDE_MARGIN = 7.0                  # room at +X/-X for screw bosses and air
+FIT = 0.25                         # plate-to-lid gap per side
+HEAD_D, HEAD_H = 6.5, 1.8          # counterbore for an M3 button head (5.7 x 1.65)
+BOSS_D = 7.0
+# Boss inset from the inner wall: the counterbore keeps 1 mm of plate to the plate edge.
+BOSS_INSET = FIT + HEAD_D / 2 + 1.0
+SIDE_MARGIN = BOSS_INSET + BOSS_D / 2 + 0.5   # boss stays 0.5 mm off the board edge
 PORT_CLEAR = 1.0                   # extra around each port window
 MIN_RIB = 2.0                      # thinner wall strips between windows are cut away
 NUT_R = 3.3                        # M3 nut corner radius + margin
-FIT = 0.25                         # plate-to-lid gap per side
 FAN = 40.0                         # 4010 fan
 FAN_HOLE_PITCH = 32.0
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
-BOSS_D = 7.0
 ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
 
 X_IN = (PCB_X[0] - SIDE_MARGIN, PCB_X[1] + SIDE_MARGIN)
@@ -59,8 +62,9 @@ ROOF_IN = Z_TOP - ROOF
 X_OUT = (X_IN[0] - WALL, X_IN[1] + WALL)
 Y_OUT = (Y_IN[0] - WALL, Y_IN[1] + WALL)
 YC = sum(Y_IN) / 2
-BOSSES = [(X_IN[0] + 3.0, Y_IN[0] + 3.5), (X_IN[0] + 3.0, Y_IN[1] - 3.5),
-          (X_IN[1] - 3.0, Y_IN[0] + 3.5), (X_IN[1] - 3.0, Y_IN[1] - 3.5)]
+I = BOSS_INSET
+BOSSES = [(X_IN[0] + I, Y_IN[0] + I), (X_IN[0] + I, Y_IN[1] - I),
+          (X_IN[1] - I, Y_IN[0] + I), (X_IN[1] - I, Y_IN[1] - I)]
 MIN = (Align.MIN, Align.MIN, Align.MIN)
 
 
@@ -117,11 +121,16 @@ def make_lid():
     for z0 in (ant_z0 - rail, ant_z0 + ANT_W + 0.5):           # top and bottom rails
         lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y0 - rail, ant_y1 + rail, z0, z0 + rail)
     lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y1, ant_y1 + rail, ant_z0, ant_z0 + ANT_W + 0.5)  # end stop
-    lid -= box(*wall, ant_y0 + 2, ant_y0 + 8, ant_z0 + 2, ant_z0 + 5)                        # cable slot
+    lid -= box(*wall, ant_y0 + 10, ant_y0 + 16, ant_z0 + 2, ant_z0 + 5)   # cable slot, clear of the boss
 
-    # Screw bosses from the roof down to the plate, and 2 posts that keep the shield seated
+    # Screw bosses from the roof down to the plate, tied to the corner walls,
+    # and 2 posts that keep the shield seated
     for x, y in BOSSES:
-        lid += cyl_z(x, y, BOSS_D, PLATE_TOP_Z, ROOF_IN) - cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1, PLATE_TOP_Z + 10)
+        xw = X_IN[0] if x < 0 else X_IN[1]
+        yw = Y_IN[0] if y < 0 else Y_IN[1]
+        lid += box(min(x, xw), max(x, xw), min(y, yw), max(y, yw), PLATE_TOP_Z, ROOF_IN)
+        lid += cyl_z(x, y, BOSS_D, PLATE_TOP_Z, ROOF_IN)
+        lid -= cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1, PLATE_TOP_Z + 10)
     for x, y in SHIELD_HOLES:
         lid += cyl_z(x, y, 5.0, SHIELD_TOP_Z + 0.3, ROOF_IN)
     return lid
@@ -134,7 +143,7 @@ def make_base():
         base -= cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1.5, PCB_BOTTOM_Z + 1)
     for x, y in BOSSES:
         base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PLATE_TOP_Z + 1)
-        base -= cyl_z(x, y, 6.5, Z_BOT - 1, Z_BOT + 1.8)       # counterbore for M3 button head
+        base -= cyl_z(x, y, HEAD_D, Z_BOT - 1, Z_BOT + HEAD_H)   # counterbore for M3 button head
     return base
 
 

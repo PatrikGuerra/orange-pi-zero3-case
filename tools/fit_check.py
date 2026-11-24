@@ -30,6 +30,11 @@ assert low - case.NUT_R >= case.PLATE_TOP_Z - 1e-6, "low fan nuts hit the base p
 assert high + case.NUT_R <= case.ROOF_IN + 1e-6, "high fan nuts hit the roof"
 assert case.FAN_ZC - case.FAN / 2 >= case.Z_BOT and case.FAN_ZC + case.FAN / 2 <= case.Z_TOP, "fan sticks out"
 
+# Bosses: the screw head counterbore keeps >= 1 mm of plate to the plate edge
+for x, y in case.BOSSES:
+    edge = min(x - case.X_IN[0], case.X_IN[1] - x, y - case.Y_IN[0], case.Y_IN[1] - y) - case.FIT
+    assert edge - case.HEAD_D / 2 >= 1.0 - 1e-6, f"screw head too close to the wall at ({x:.1f}, {y:.1f})"
+
 # Port walls: a strip thinner than MIN_RIB between two windows must be cut away
 for ports in (case.PORTS_MINUS_Y, case.PORTS_PLUS_Y):
     wins = case.port_windows(ports)
