@@ -38,6 +38,8 @@ PLATE = 3.0
 PLATE_TOP_Z = PCB_BOTTOM_Z - 4.0
 SIDE_MARGIN = 7.0                  # room at +X/-X for screw bosses and air
 PORT_CLEAR = 1.0                   # extra around each port window
+MIN_RIB = 2.0                      # thinner wall strips between windows are cut away
+NUT_R = 3.3                        # M3 nut corner radius + margin
 FIT = 0.25                         # plate-to-lid gap per side
 FAN = 40.0                         # 4010 fan
 FAN_HOLE_PITCH = 32.0
@@ -49,13 +51,14 @@ ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
 X_IN = (PCB_X[0] - SIDE_MARGIN, PCB_X[1] + SIDE_MARGIN)
 Y_IN = (-27.40 - 0.4, 26.80 + 0.4)   # port tips + clearance
 Z_BOT = PLATE_TOP_Z - PLATE
-HEIGHT = max(TALLEST_Z + 1.0 + ROOF - Z_BOT, FAN + 2.0)
+# Fan nuts sit inside: the low ones must clear the plate, the high ones the roof.
+FAN_ZC = PLATE_TOP_Z + NUT_R + FAN_HOLE_PITCH / 2
+HEIGHT = max(TALLEST_Z + 1.0 + ROOF, FAN_ZC + FAN_HOLE_PITCH / 2 + NUT_R + ROOF) - Z_BOT
 Z_TOP = Z_BOT + HEIGHT
 ROOF_IN = Z_TOP - ROOF
 X_OUT = (X_IN[0] - WALL, X_IN[1] + WALL)
 Y_OUT = (Y_IN[0] - WALL, Y_IN[1] + WALL)
 YC = sum(Y_IN) / 2
-FAN_ZC = Z_BOT + HEIGHT / 2
 BOSSES = [(X_IN[0] + 3.0, Y_IN[0] + 3.5), (X_IN[0] + 3.0, Y_IN[1] - 3.5),
           (X_IN[1] - 3.0, Y_IN[0] + 3.5), (X_IN[1] - 3.0, Y_IN[1] - 3.5)]
 MIN = (Align.MIN, Align.MIN, Align.MIN)
@@ -73,13 +76,22 @@ def cyl_x(x0, x1, y, z, d):
     return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(d / 2, x1 - x0, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
 
+def port_windows(ports):
+    """Port windows (x0, x1, z0, z1) with clearance. A rib thinner than MIN_RIB between two
+    neighbours breaks off, so that gap is opened too (over the z range both windows share)."""
+    c = PORT_CLEAR
+    wins = sorted((x0 - c, x1 + c, z0 - c, z1 + c) for x0, x1, z0, z1 in ports.values())
+    gaps = [(a[1], b[0], max(a[2], b[2]), min(a[3], b[3]))
+            for a, b in zip(wins, wins[1:]) if b[0] - a[1] < MIN_RIB]
+    return wins + gaps
+
+
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
-    c = PORT_CLEAR
-    for x0, x1, z0, z1 in PORTS_MINUS_Y.values():
-        lid -= box(x0 - c, x1 + c, Y_OUT[0] - 1, Y_IN[0] + 1, z0 - c, z1 + c)
-    for x0, x1, z0, z1 in PORTS_PLUS_Y.values():
-        lid -= box(x0 - c, x1 + c, Y_IN[1] - 1, Y_OUT[1] + 1, z0 - c, z1 + c)
+    for w in port_windows(PORTS_MINUS_Y):
+        lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
+    for w in port_windows(PORTS_PLUS_Y):
+        lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, w[2], w[3])
     # microSD: notch open to the bottom edge, so the lid slides down past the card
     x0, x1, _, z1 = MICROSD
     lid -= box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)

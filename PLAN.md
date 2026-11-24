@@ -48,7 +48,8 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 
 ### Como ficou o modelo (v1, `case.py`)
 
-- Medida externa: 73 x 59 x 42 mm (a altura vem da ventoinha de 40 mm).
+- Medida externa: 73 x 59 x 43,6 mm (a altura vem da ventoinha e das porcas dela).
+- Janelas de portas vizinhas com tira de parede menor que 2 mm viram uma só (USB-A + RJ45, USB dupla + P2).
 - **Tampa**: caixa de 5 lados. Imprimir com o teto na mesa.
 - **Base**: placa de 3 mm que encaixa por dentro da tampa. Imprimir deitada.
 - Ventoinha por fora da parede -X (lado do GPIO), presa com 4 M3 x 16 + porca. Abertura de 38 mm com 2 travessas.

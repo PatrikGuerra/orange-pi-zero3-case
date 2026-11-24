@@ -23,4 +23,20 @@ for i, s in enumerate(solids):
             bad += 1
 print(f"outer {case.X_OUT[1] - case.X_OUT[0]:.1f} x {case.Y_OUT[1] - case.Y_OUT[0]:.1f} x {case.HEIGHT:.1f} mm")
 assert bad == 0, f"{bad} overlaps"
+
+# Fan: nuts clear the plate and the roof, and the fan stays inside the case outline
+low, high = case.FAN_ZC - case.FAN_HOLE_PITCH / 2, case.FAN_ZC + case.FAN_HOLE_PITCH / 2
+assert low - case.NUT_R >= case.PLATE_TOP_Z - 1e-6, "low fan nuts hit the base plate"
+assert high + case.NUT_R <= case.ROOF_IN + 1e-6, "high fan nuts hit the roof"
+assert case.FAN_ZC - case.FAN / 2 >= case.Z_BOT and case.FAN_ZC + case.FAN / 2 <= case.Z_TOP, "fan sticks out"
+
+# Port walls: a strip thinner than MIN_RIB between two windows must be cut away
+for ports in (case.PORTS_MINUS_Y, case.PORTS_PLUS_Y):
+    wins = case.port_windows(ports)
+    edges = {(w[0], w[1]) for w in wins}
+    for a in wins:
+        for b in wins:
+            gap = b[0] - a[1]
+            if 0 < gap < case.MIN_RIB and min(a[3], b[3]) > max(a[2], b[2]):
+                assert (a[1], b[0]) in edges, f"thin rib {gap:.2f} mm left at x={a[1]:.2f}"
 print("fit check OK")
