@@ -1,0 +1,137 @@
+"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 side fan, outside Wi-Fi antenna.
+
+Two parts:
+- lid: 5-sided box (walls + roof), printed roof down.
+- base: flat plate with board standoffs, fits inside the lid, screwed from below.
+
+Coordinates are the ones of the reference STEP (reference/motorbottle-case.stp), mm.
+Run: .venv/Scripts/python case.py  ->  out/lid.stl, out/base.stl, out/case.step
+"""
+from pathlib import Path
+from build123d import Align, Box, Cylinder, Pos, Rot, export_step, export_stl, Compound
+
+# --- Board geometry, read from the reference STEP (tools/inspect_step.py, tools/find_holes.py) ---
+PCB_X = (-23.06, 31.94)            # main board 55 x 50.2 x 1.2
+PCB_Y = (-26.30, 23.90)
+PCB_BOTTOM_Z = 5.15
+BOARD_HOLES = [(29.39, -23.75), (29.39, 21.35), (-20.51, 21.35), (-20.51, -23.75)]  # d = 3.0
+SHIELD_TOP_Z = 19.32
+SHIELD_HOLES = [(-4.31, -5.60), (23.72, 16.70)]                                      # d = 3.0
+TALLEST_Z = 35.01                  # stacked USB on the shield
+# Port bounding boxes (x0, x1, z0, z1). -Y: main board edge. +Y: shield edge.
+PORTS_MINUS_Y = {
+    "micro_hdmi": (-16.86, -10.36, 6.53, 9.47),
+    "usb_c": (-5.01, -1.81, 7.05, 15.97),
+    "usb_a": (2.94, 8.74, 6.85, 20.05),
+    "rj45": (10.94, 25.94, 6.35, 19.85),
+}
+PORTS_PLUS_Y = {
+    "usb_x2": (-7.01, 8.59, 16.27, 35.01),
+    "audio": (11.50, 18.50, 19.17, 25.17),
+}
+MICROSD = (14.73, 25.74, 3.29, 4.29)   # card under the board, sticks out on +Y
+
+# --- Case parameters ---
+WALL = 2.0
+ROOF = 2.0
+PLATE = 3.0
+PLATE_TOP_Z = PCB_BOTTOM_Z - 4.0
+SIDE_MARGIN = 7.0                  # room at +X/-X for screw bosses and air
+PORT_CLEAR = 1.0                   # extra around each port window
+FIT = 0.25                         # plate-to-lid gap per side
+FAN = 40.0                         # 4010 fan
+FAN_HOLE_PITCH = 32.0
+SCREW_TAP = 2.9                    # M3 self-tapping into PETG
+SCREW_PASS = 3.4
+BOSS_D = 7.0
+ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
+
+X_IN = (PCB_X[0] - SIDE_MARGIN, PCB_X[1] + SIDE_MARGIN)
+Y_IN = (-27.40 - 0.4, 26.80 + 0.4)   # port tips + clearance
+Z_BOT = PLATE_TOP_Z - PLATE
+HEIGHT = max(TALLEST_Z + 1.0 + ROOF - Z_BOT, FAN + 2.0)
+Z_TOP = Z_BOT + HEIGHT
+ROOF_IN = Z_TOP - ROOF
+X_OUT = (X_IN[0] - WALL, X_IN[1] + WALL)
+Y_OUT = (Y_IN[0] - WALL, Y_IN[1] + WALL)
+YC = sum(Y_IN) / 2
+FAN_ZC = Z_BOT + HEIGHT / 2
+BOSSES = [(X_IN[0] + 3.0, Y_IN[0] + 3.5), (X_IN[0] + 3.0, Y_IN[1] - 3.5),
+          (X_IN[1] - 3.0, Y_IN[0] + 3.5), (X_IN[1] - 3.0, Y_IN[1] - 3.5)]
+MIN = (Align.MIN, Align.MIN, Align.MIN)
+
+
+def box(x0, x1, y0, y1, z0, z1):
+    return Pos(x0, y0, z0) * Box(x1 - x0, y1 - y0, z1 - z0, align=MIN)
+
+
+def cyl_z(x, y, d, z0, z1):
+    return Pos(x, y, z0) * Cylinder(d / 2, z1 - z0, align=(Align.CENTER, Align.CENTER, Align.MIN))
+
+
+def cyl_x(x0, x1, y, z, d):
+    return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(d / 2, x1 - x0, align=(Align.CENTER, Align.CENTER, Align.MIN))
+
+
+def make_lid():
+    lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
+    c = PORT_CLEAR
+    for x0, x1, z0, z1 in PORTS_MINUS_Y.values():
+        lid -= box(x0 - c, x1 + c, Y_OUT[0] - 1, Y_IN[0] + 1, z0 - c, z1 + c)
+    for x0, x1, z0, z1 in PORTS_PLUS_Y.values():
+        lid -= box(x0 - c, x1 + c, Y_IN[1] - 1, Y_OUT[1] + 1, z0 - c, z1 + c)
+    # microSD: notch open to the bottom edge, so the lid slides down past the card
+    x0, x1, _, z1 = MICROSD
+    lid -= box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
+
+    # -X wall: fan intake. Open circle with 2 ribs that keep the cable off the blades.
+    wall = (X_OUT[0] - 1, X_IN[0] + 1)
+    lid -= cyl_x(*wall, YC, FAN_ZC, 38.0) - box(*wall, YC - 7, YC - 5.4, Z_BOT, Z_TOP) \
+        - box(*wall, YC + 5.4, YC + 7, Z_BOT, Z_TOP)
+    for dy in (-1, 1):
+        for dz in (-1, 1):
+            lid -= cyl_x(*wall, YC + dy * FAN_HOLE_PITCH / 2, FAN_ZC + dz * FAN_HOLE_PITCH / 2, SCREW_PASS)
+
+    # +X wall: exhaust slots low (air between board and shield), antenna holder high
+    wall = (X_IN[1] - 1, X_OUT[1] + 1)
+    y = -20.0
+    while y + 2.5 <= 20.0:
+        lid -= box(*wall, y, y + 2.5, PLATE_TOP_Z + 2, 21.0)
+        y += 4.5
+    ant_z0 = 25.0
+    ant_y0 = YC - ANT_L / 2 - 0.5
+    ant_y1 = YC + ANT_L / 2 + 0.5
+    rail = 1.2
+    for z0 in (ant_z0 - rail, ant_z0 + ANT_W + 0.5):           # top and bottom rails
+        lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y0 - rail, ant_y1 + rail, z0, z0 + rail)
+    lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y1, ant_y1 + rail, ant_z0, ant_z0 + ANT_W + 0.5)  # end stop
+    lid -= box(*wall, ant_y0 + 2, ant_y0 + 8, ant_z0 + 2, ant_z0 + 5)                        # cable slot
+
+    # Screw bosses from the roof down to the plate, and 2 posts that keep the shield seated
+    for x, y in BOSSES:
+        lid += cyl_z(x, y, BOSS_D, PLATE_TOP_Z, ROOF_IN) - cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1, PLATE_TOP_Z + 10)
+    for x, y in SHIELD_HOLES:
+        lid += cyl_z(x, y, 5.0, SHIELD_TOP_Z + 0.3, ROOF_IN)
+    return lid
+
+
+def make_base():
+    base = box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT, PLATE_TOP_Z)
+    for x, y in BOARD_HOLES:
+        base += cyl_z(x, y, 6.0, PLATE_TOP_Z, PCB_BOTTOM_Z)
+        base -= cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1.5, PCB_BOTTOM_Z + 1)
+    for x, y in BOSSES:
+        base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PLATE_TOP_Z + 1)
+        base -= cyl_z(x, y, 6.5, Z_BOT - 1, Z_BOT + 1.8)       # counterbore for M3 button head
+    return base
+
+
+if __name__ == "__main__":
+    out = Path(__file__).parent / "out"
+    out.mkdir(exist_ok=True)
+    lid, base = make_lid(), make_base()
+    assert lid.is_valid and base.is_valid
+    export_stl(lid, str(out / "lid.stl"))
+    export_stl(base, str(out / "base.stl"))
+    export_step(Compound([lid, base]), str(out / "case.step"))
+    print(f"outer {X_OUT[1] - X_OUT[0]:.1f} x {Y_OUT[1] - Y_OUT[0]:.1f} x {HEIGHT:.1f} mm")
