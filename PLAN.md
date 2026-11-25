@@ -61,7 +61,7 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 ### Montagem
 
 1. Parafuse a placa na base (4 x M3 x 6).
-2. Vire a tampa de cabeça para baixo. Encoste a placa USB nas 2 colunas e prenda com 2 x M3 x 5.
+2. Vire a tampa de cabeça para baixo. Coloque a placa USB inclinada, com as portas entrando nas janelas (a parede de PETG cede um pouco). Encoste nas 2 colunas e prenda com 2 x M3 x 5.
 3. Desça a tampa com a placa USB sobre a placa. O conector da placa USB encaixa no header de 13 pinos.
 4. Prenda a base na tampa por baixo (4 x M3 x 10).
 5. Prenda a ventoinha por fora (4 x M3 x 16 + porca) e ligue nos pinos 5 V e GND.

@@ -134,10 +134,10 @@ def make_lid():
     lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
     for w in port_windows(PORTS_MINUS_Y):
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
-    # +Y: the shield ports reach into the wall, so their windows are open to the bottom
-    # edge (the lid slides down past them). The base fills the wall back in below each port.
+    # +Y: the shield ports reach into the wall. The windows stay closed below; the PETG
+    # wall flexes out over the ports when the lid goes on.
     for w in port_windows(PORTS_PLUS_Y):
-        lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, w[3])
+        lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, w[2], w[3])
     # microSD: notch open to the bottom edge, so the lid slides down past the card
     lid -= microsd_notch()
 
@@ -191,17 +191,7 @@ def make_base():
     for x, y in BOSSES:
         base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PLATE_TOP_Z + 1)
         base -= cyl_z(x, y, HEAD_D, Z_BOT - 1, Z_BOT + HEAD_H)   # counterbore for M3 button head
-    # Wall fillers under the shield ports (they close the lid notches below each window)
-    wins = port_windows(PORTS_PLUS_Y)
-    fill = None
-    for w in wins:
-        b = box(w[0], w[1], Y_IN[1] - FIT, Y_OUT[1], Z_BOT, w[2])
-        fill = b if fill is None else fill + b
-    span = box(min(w[0] for w in wins) + FIT, max(w[1] for w in wins) - FIT, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, Z_TOP)
-    # microSD card passes through a window in the filler (a notch would leave a cantilever)
-    x0, x1, z0, z1 = MICROSD
-    sd = box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 2, Y_OUT[1] + 1, z0 - 1.5, z1 + 1.5)
-    return base + ((fill & span) - sd)
+    return base
 
 
 if __name__ == "__main__":
