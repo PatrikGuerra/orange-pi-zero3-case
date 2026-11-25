@@ -84,8 +84,8 @@ TIE_HOLE = (3.4, 1.8)              # hole width (x) and height (z): zip ties up 
 TIE_GAP = 0.9                      # plastic between each hole and the antenna
 TIE_X = (-14.0, 15.0)              # clear of the microSD notch, the audio jack and the cable hole
 ANT_HOLE_D = 3.2                   # cable hole; the IPEX plug (about 2 mm) passes
-# (x, z) in the +Y wall: between the shield USB (x < 8.6) and the audio jack, over the antenna
-ANT_HOLE = (10.5, 15.6)
+# (x, z) in the +Y wall: left of the x = 15 tie (seen from outside), under the audio jack
+ANT_HOLE = (20.5, 15.6)
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
 BAY_DEPTH = FAN_T + FAN_GAP
