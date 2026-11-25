@@ -39,11 +39,16 @@ for x, y in case.SHIELD_HOLES:
 
 # Ports: each official connector, where it passes the wall, sits inside its window
 ports = official_board.load()
+pcb_gap = ports["PCB-Z3"].solids()[0].bounding_box().min.Y - case.Y_IN[0]
+assert 0.2 <= pcb_gap <= 0.3 + 1e-3, f"main board edge is {pcb_gap:.2f} mm from the -Y wall"
+tips = {k: case.Y_OUT[0] - ports[k].bounding_box().min.Y for k in
+        ("03_11_13_0003_HDMI0001", "TYPE_C_CC", "_USB_ASM_3_ASM", "RJ45")}
+print(f"main board {pcb_gap:.2f} mm off the -Y wall, ports "
+      f"{-max(tips.values()):.2f} to {-min(tips.values()):.2f} mm behind the outside face")
 slab = case.box(-60, 60, case.Y_OUT[0] - 1, case.Y_IN[0] + 1.5, -10, 60)
 wins = case.port_windows(case.PORTS_MINUS_Y, case.PORT_CLEAR, case.MERGED_PORTS)
 for label, key in (("03_11_13_0003_HDMI0001", "micro_hdmi"), ("TYPE_C_CC", "usb_c"),
                    ("_USB_ASM_3_ASM", "usb_a"), ("RJ45", "rj45")):
-    assert ports[label].bounding_box().min.Y > case.Y_IN[0], f"{key} sticks into the wall"
     for s in ports[label].solids():
         c = s & slab
         if c is None or c.volume < 0.001:

@@ -84,9 +84,11 @@ BAY_DEPTH = FAN_T + FAN_GAP
 BAY_END_X = min(PCB_X[0], min(x for x, _ in BOARD_HOLES) - STANDOFF_D / 2) - 0.3
 X_IN = (BAY_END_X - BAY_DEPTH, PCB_X[1] + 0.5)
 SHIELD_EDGE_Y = 24.70              # shield PCB edge; its USB and audio tips are at y = 26.80
-# -Y: port tips + clearance. +Y: wall right at the shield edge, so the shield ports sit
+PCB_WALL_GAP = 0.3                 # main board edge to the -Y wall
+# -Y: wall 0.3 mm off the main board edge; its ports reach into the wall, 1.35 mm behind
+# the outside face. +Y: wall right at the shield edge, so the shield ports sit
 # 0.3 mm behind the outside face (near flush) instead of 2.4 mm deep.
-Y_IN = (-27.40 - 0.4, SHIELD_EDGE_Y + 0.4)
+Y_IN = (PCB_Y[0] - PCB_WALL_GAP, SHIELD_EDGE_Y + 0.4)
 Z_BOT = PLATE_TOP_Z - PLATE
 # The fan stands on the base plate; the roof clears its top.
 FAN_ZC = PLATE_TOP_Z + FAN_GAP + FAN / 2
@@ -247,7 +249,8 @@ def make_base():
         # counterbore: the holes sit too close to the plate edge; feet lift the heads.
         base += cyl_z(x, y, STANDOFF_D, PLATE_TOP_Z, PCB_BOTTOM_Z)
         base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PCB_BOTTOM_Z + 1)
-    return base
+    # standoffs near the -Y wall are cut flat at the plate edge
+    return base & box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT - 1, PCB_BOTTOM_Z + 1)
 
 
 if __name__ == "__main__":
