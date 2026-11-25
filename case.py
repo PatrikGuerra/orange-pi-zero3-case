@@ -190,6 +190,13 @@ def antenna_clip(yc):
     return clip & box(X_OUT[1] - 0.2, x + r_out + 1, y0, y1, Z_BOT, Z_TOP)       # no lip above the roof
 
 
+def make_antenna():
+    """Round whip antenna (cylinder, d = ANT_D) lying in the clips."""
+    x, z = antenna_axis()
+    return Pos(x, YC - ANT_L / 2, z) * Rot(-90, 0, 0) * Cylinder(ANT_D / 2 - 0.15, ANT_L,
+                                                              align=(Align.CENTER, Align.CENTER, Align.MIN))
+
+
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
     lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)

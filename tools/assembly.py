@@ -22,6 +22,7 @@ parts = [
     (Compound(list(board.values())), "board_official", Color(0.1, 0.5, 0.2)),
     (shield, "usb_shield", Color(0.1, 0.3, 0.7)),
     (heatsink, "heatsink_standin", Color(0.7, 0.7, 0.7)),
+    (case.make_antenna(), "antenna_whip", Color(0.05, 0.05, 0.05)),
 ]
 for shape, label, color in parts:
     shape.label, shape.color = label, color
