@@ -48,11 +48,11 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 
 ### Como ficou o modelo (v1, `case.py`)
 
-- Medida externa: 79,8 x 56,9 x 46,1 mm (branch `feature/fan-inside`: ventoinha dentro).
+- Medida externa: 78,6 x 56,9 x 46,1 mm (branch `feature/fan-inside`: ventoinha dentro).
 - Janelas de portas vizinhas com tira de parede menor que 1,5 mm viram uma só.
 - **Tampa**: caixa de 5 lados. Imprimir com o teto na mesa.
 - **Base**: placa de 3,5 mm que encaixa por dentro da tampa. Imprimir deitada.
-- Ventoinha 4010 dentro, num berço junto à parede -X (lado do GPIO): 2 nervuras com abas seguram a ventoinha, sem parafuso. Grade em colmeia na parede.
+- Ventoinha 4010 dentro, encostada na parede -X (lado do GPIO), presa por fora com 4 x M3 x 10 que roscam nos furos da ventoinha. Grade em colmeia na parede.
 - Saída de ar: frestas na parede +X, na altura entre a placa e a placa USB.
 - Antena: trilhos por fora da parede +X, acima das frestas, com fenda para o cabo.
 - Fixação da base: 2 ganchos no lado -X entram em fendas da parede; 2 parafusos M3 x 10 no lado +X. Placa: 4 M3 x 6 nos pinos da base.
@@ -62,7 +62,7 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 
 1. Parafuse a placa na base (4 x M3 x 6).
 2. Vire a tampa de cabeça para baixo. Coloque a placa USB inclinada, com as portas entrando nas janelas (a parede de PETG cede um pouco). Encoste nas 2 colunas e prenda com 2 x M3 x 5.
-3. Com a tampa ainda de cabeça para baixo, ponha a ventoinha no berço. Ligue o cabo dela nos pinos 5 V e GND da placa.
+3. Parafuse a ventoinha por fora da parede -X (4 x M3 x 10). Ligue o cabo dela nos pinos 5 V e GND da placa.
 4. Vire a base com a placa e encaixe os 2 ganchos nas fendas da parede -X.
 5. Gire a base para fechar. O conector da placa USB encaixa no header de 13 pinos.
 6. Prenda a base com 2 x M3 x 10 no lado +X.

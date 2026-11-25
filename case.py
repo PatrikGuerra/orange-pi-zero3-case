@@ -58,10 +58,8 @@ SHIELD_PORT_CLEAR = 1.0            # margin around the shield USB and audio wind
 MIN_RIB = 1.5                      # thinner wall strips between windows are cut away
 FAN = 40.0                         # 4010 fan, inside the case against the -X wall
 FAN_T = 10.0
-FAN_GAP = 0.3                      # play around the fan in its bay
-BAY_RIB = 1.6                      # side ribs of the fan bay
-BAY_LIP = 2.0                      # lips on the ribs that stop the fan on its inner face
-LIP_T = 1.2                        # lip thickness along X
+FAN_GAP = 0.3                      # play around the fan
+FAN_HOLE_PITCH = 32.0              # fan screws from outside, M3 x 10 into the fan frame holes
 GRILLE_D = 38.0                    # fan opening
 GRILLE_CELL, GRILLE_RIB = 6.0, 1.4 # hexagon flat-to-flat width, wall between cells
 CORNER_R = 3.0                     # outside vertical corners of the lid
@@ -71,8 +69,8 @@ ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
 TAB_W, TAB_DEPTH, TAB_T = 3.8, 1.6, 1.5   # base hooks that go into the -X wall
 TAB_GAP = 0.3
 
-# -X: fan bay (fan + play + lip), kept 0.3 mm off the board edge and the base standoffs (d 6).
-BAY_DEPTH = FAN_T + FAN_GAP + LIP_T
+# -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
+BAY_DEPTH = FAN_T + FAN_GAP
 BAY_END_X = min(PCB_X[0], min(x for x, _ in BOARD_HOLES) - 3.0) - 0.3
 X_IN = (BAY_END_X - BAY_DEPTH, PCB_X[1] + SIDE_MARGIN)
 SHIELD_EDGE_Y = 24.70              # shield PCB edge; its USB and audio tips are at y = 26.80
@@ -157,16 +155,11 @@ def make_lid():
     # without supports, and a 2-pin Dupont plug (5.1 x 2.5) passes through any cell.
     wall = (X_OUT[0] - 1, X_IN[0] + 1)
     lid -= fan_grille(wall[0], wall[1] - wall[0])
-    # Fan bay: 2 side ribs with lips. The fan drops in with the lid upside down and the
-    # base plate closes the bay.
-    x_lip = X_IN[0] + FAN_T + FAN_GAP
-    for s in (-1, 1):
-        y_in = YC + s * (FAN / 2 + FAN_GAP)
-        rib = box(X_IN[0], x_lip + LIP_T, min(y_in, y_in + s * BAY_RIB), max(y_in, y_in + s * BAY_RIB),
-                  PLATE_TOP_Z, ROOF_IN)
-        lip = box(x_lip, x_lip + LIP_T, min(y_in, y_in - s * BAY_LIP), max(y_in, y_in - s * BAY_LIP),
-                  PLATE_TOP_Z, ROOF_IN)
-        lid += rib + lip
+    # Fan screws from outside through the wall into the fan frame
+    p = FAN_HOLE_PITCH / 2
+    for dy in (-p, p):
+        for dz in (-p, p):
+            lid -= cyl_x(*wall, YC + dy, FAN_ZC + dz, SCREW_PASS)
     # Slots for the base hooks
     for y0, y1 in TABS_Y:
         lid -= box(*wall, y0 - TAB_GAP, y1 + TAB_GAP, TAB_Z[0] - TAB_GAP, TAB_Z[1] + TAB_GAP)
@@ -206,12 +199,12 @@ def make_lid():
 
 
 def make_fan():
-    """Simple 4010 fan (frame, 38 mm bore, hub, 4 holes) standing in its bay against the -X wall."""
+    """Simple 4010 fan (frame, 38 mm bore, hub, 4 holes) screwed to the inside of the -X wall."""
     x0 = X_IN[0] + 0.05
     frame = box(x0, x0 + FAN_T, YC - FAN / 2, YC + FAN / 2, FAN_ZC - FAN / 2, FAN_ZC + FAN / 2)
     frame -= cyl_x(x0, x0 + FAN_T, YC, FAN_ZC, 38.0)
-    for dy in (-16, 16):
-        for dz in (-16, 16):
+    for dy in (-FAN_HOLE_PITCH / 2, FAN_HOLE_PITCH / 2):
+        for dz in (-FAN_HOLE_PITCH / 2, FAN_HOLE_PITCH / 2):
             frame -= cyl_x(x0, x0 + FAN_T, YC + dy, FAN_ZC + dz, 3.4)
     return frame + cyl_x(x0, x0 + FAN_T, YC, FAN_ZC, 16.0)
 
