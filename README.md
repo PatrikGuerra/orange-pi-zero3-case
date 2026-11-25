@@ -2,6 +2,8 @@
 
 Case impresso em PETG para o Orange Pi Zero 3 (2 GB) com a placa de expansão USB. Tem ventoinha 4010 dentro e suporte externo para a antena Wi-Fi redonda.
 
+Nesta branch (`feature/antenna-zip-tie`), a antena fica na face das USB da placa USB, abaixo delas, presa com 2 abraçadeiras (opção B). A imagem abaixo é da opção A (presilhas), da branch `feature/antena-holder`.
+
 ![Montagem do case com a placa, a placa USB, a ventoinha e a antena](docs/assembly-antenna-holder.png)
 
 ## Peças

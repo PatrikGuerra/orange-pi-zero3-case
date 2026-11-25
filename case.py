@@ -1,4 +1,4 @@
-"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 fan, Wi-Fi whip antenna clipped outside.
+"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 fan, Wi-Fi whip antenna zip-tied outside.
 
 Two parts:
 - lid: 5-sided box (walls + roof), printed roof down.
@@ -77,13 +77,19 @@ CORNER_R = 3.0                     # outside vertical corners of the lid
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
 ANT_D, ANT_L = 5.0, 60.0           # round whip antenna (guess, check with calipers)
-ANT_FIT = 0.2                      # clip grips 0.2 mm under the antenna diameter
-CLIP_T = 1.6                       # clip ring wall
-CLIP_W = 6.0                       # clip length along the antenna
-CLIP_OPEN = 0.75                   # clip mouth as a share of the antenna diameter
+# Option B: cradle on the +Y face (shield USB side), below the USB window, with 2 tunnels
+# behind the channel for zip ties that wrap the antenna.
+ANT_Z = 10.0                       # antenna axis height: over the microSD notch (5.8), under the cable hole
+CH_R = ANT_D / 2 + 0.2             # channel radius
+CRADLE_FLOOR = 1.0                 # plastic between the tunnels and the channel
+TIE_W, TIE_T = 3.5, 1.4            # tunnel for a zip tie up to 3 mm wide, 1.2 mm thick
+TIE_BRIDGE = 0.8                   # plastic between the wall face and the tunnels
+CRADLE_MARGIN = 1.0                # cradle height over the channel, up and down
+CRADLE_L = ANT_L - 4.0
+TIE_OFFSET = 18.0                  # tunnels at the cradle center +- this
 ANT_HOLE_D = 3.2                   # cable hole; the IPEX plug (about 2 mm) passes
-# (y, z) on the last exhaust slot, under the 13-pin socket (z 9.3) and over the board (z 6.45)
-ANT_HOLE = (17.25, 8.0)
+# (x, z) in the +Y wall: between the shield USB (x < 8.6) and the audio jack, over the cradle
+ANT_HOLE = (10.5, 15.6)
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
 BAY_DEPTH = FAN_T + FAN_GAP
@@ -105,7 +111,7 @@ X_OUT = (X_IN[0] - WALL, X_IN[1] + WALL)
 Y_OUT = (Y_IN[0] - WALL, Y_IN[1] + WALL)
 YC = sum(Y_IN) / 2
 PCB_TOP_Z = PCB_BOTTOM_Z + 1.3
-ANT_CLIPS_Y = (YC - 15.0, YC + 15.0)   # 2 clips, 30 mm apart
+XC = sum(X_OUT) / 2
 MIN = (Align.MIN, Align.MIN, Align.MIN)
 
 
@@ -168,33 +174,31 @@ def microsd_notch():
 
 
 def antenna_axis():
-    """(x, z) of the antenna axis: outside the +X wall, just under the top edge."""
-    r_out = (ANT_D - ANT_FIT) / 2 + CLIP_T
-    return X_OUT[1] + r_out, Z_TOP - r_out
+    """(y, z) of the antenna axis: outside the +Y wall, half sunk in the cradle channel."""
+    return Y_OUT[1] + TIE_BRIDGE + TIE_T + CRADLE_FLOOR + CH_R, ANT_Z
 
 
-def antenna_clip(yc):
-    """C-clip on the +X wall at y = yc. The mouth faces +X, so the antenna snaps in sideways."""
-    x, z = antenna_axis()
-    r_in = (ANT_D - ANT_FIT) / 2
-    r_out = r_in + CLIP_T
+def cyl_along_x(x0, length, y, z, r):
+    return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(r, length, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
-    def cyl_y(r):
-        return Pos(x, yc - CLIP_W / 2, z) * Rot(-90, 0, 0) * Cylinder(r, CLIP_W, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
-    y0, y1 = yc - CLIP_W / 2, yc + CLIP_W / 2
-    clip = cyl_y(r_out) + box(X_OUT[1] - 0.2, x, y0, y1, z - r_out, z + r_out)   # foot on the wall
-    clip -= cyl_y(r_in)
-    m = CLIP_OPEN * ANT_D / 2
-    clip -= box(x, x + r_out + 1, y0 - 1, y1 + 1, z - m, z + m)                  # mouth
-    return clip & box(X_OUT[1] - 0.2, x + r_out + 1, y0, y1, Z_BOT, Z_TOP)       # no lip above the roof
+def antenna_cradle():
+    """Block on the +Y wall with a half-round channel and 2 vertical zip-tie tunnels."""
+    y, z = antenna_axis()
+    x0, x1 = XC - CRADLE_L / 2, XC + CRADLE_L / 2
+    h = CH_R + CRADLE_MARGIN
+    cradle = box(x0, x1, Y_OUT[1] - 0.2, y, z - h, z + h)
+    cradle -= cyl_along_x(x0 - 1, CRADLE_L + 2, y, z, CH_R)
+    t0 = Y_OUT[1] + TIE_BRIDGE
+    for xt in (XC - TIE_OFFSET, XC + TIE_OFFSET):
+        cradle -= box(xt - TIE_W / 2, xt + TIE_W / 2, t0, t0 + TIE_T, z - h - 1, z + h + 1)
+    return cradle
 
 
 def make_antenna():
-    """Round whip antenna (cylinder, d = ANT_D) lying in the clips."""
-    x, z = antenna_axis()
-    return Pos(x, YC - ANT_L / 2, z) * Rot(-90, 0, 0) * Cylinder(ANT_D / 2 - 0.15, ANT_L,
-                                                              align=(Align.CENTER, Align.CENTER, Align.MIN))
+    """Round whip antenna (cylinder, d = ANT_D) lying in the cradle."""
+    y, z = antenna_axis()
+    return cyl_along_x(XC - ANT_L / 2, ANT_L, y, z, ANT_D / 2 - 0.15)
 
 
 def make_lid():
@@ -228,13 +232,12 @@ def make_lid():
     while y + 2.5 <= 20.0:
         lid -= box(*wall, y, y + 2.5, PLATE_TOP_Z + 2, 21.0)
         y += 4.5
-    # Antenna: round whip lying along Y outside the +X wall near the top, held by 2 C-clips.
-    # Its cable leaves through a hole on the last exhaust slot, between the boards.
-    for yc in ANT_CLIPS_Y:
-        lid += antenna_clip(yc)
-    hy, hz = ANT_HOLE
-    lid -= Pos(X_IN[1], hy, hz) * Rot(0, 90, 0) * Cylinder(ANT_HOLE_D / 2, WALL + 1,
-                                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
+    # Antenna (option B): round whip lying along X on the +Y face, below the shield USB,
+    # in a cradle with 2 zip ties. Its cable leaves through a hole just above the cradle.
+    lid += antenna_cradle()
+    hx, hz = ANT_HOLE
+    lid -= Pos(hx, Y_IN[1] - 0.5, hz) * Rot(-90, 0, 0) * Cylinder(ANT_HOLE_D / 2, WALL + 1,
+                                                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
 
     # Towers from the roof down to the board top at its 4 holes, cut flat where a
     # -Y port (HDMI, RJ45) comes within reach. The base screws thread into them.

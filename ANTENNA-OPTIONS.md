@@ -2,12 +2,7 @@
 
 A antena do Orange Pi Zero 3 é redonda, preta e comprida, com cabo IPEX. O conector fica na placa principal, perto e acima do cartão microSD.
 
-Em todas as opções, a antena fica do lado de fora do case:
-
-- na parede da saída de ar, do lado oposto à ventoinha;
-- deitada ao longo da parede, perto do topo (não no teto).
-
-O cabo sai por um furo de 3,2 mm na última fresta de ar. O furo fica entre as placas, abaixo do conector de 13 pinos da placa USB.
+Em todas as opções, a antena fica do lado de fora do case, deitada. Na opção A ela fica na parede da saída de ar, perto do topo (não no teto). Na opção B ela fica na face das USB da placa USB, mais abaixo.
 
 Medidas de partida, a confirmar com paquímetro: 5 mm de grossura e 60 mm de comprimento. A parede tem cerca de 55 mm, então a ponta pode passar um pouco.
 
@@ -18,9 +13,28 @@ Medidas de partida, a confirmar com paquímetro: 5 mm de grossura e 60 mm de com
 | C. Argolas fechadas | 2 argolas fechadas. A antena entra pela ponta. | Firme, sem peças extras | O cabo e o conector precisam passar pelas argolas |
 | D. Canal + fita | Canal raso. A antena é colada com fita dupla face. | Mais simples de imprimir | Difícil de tirar; a fita perde força com calor |
 
-## Escolha atual
+## Escolhas feitas
 
-Branch `feature/antena-holder`: **opção A**.
+| Branch | Opção | Onde |
+|---|---|---|
+| `feature/antena-holder` (tag `v-antenna-holder`) | A | Parede da saída de ar, perto do topo |
+| `feature/antenna-zip-tie` | B | Face das USB da placa USB, abaixo delas |
+
+### Opção B (`feature/antenna-zip-tie`)
+
+A antena fica deitada ao longo da face das USB da placa USB, abaixo da janela delas e acima da fenda do microSD. Um bloco na parede tem um canal meio redondo. Atrás do canal há 2 túneis verticais. Cada abraçadeira entra por baixo do túnel, sobe, dá a volta na antena e fecha. O cabo entra por um furo de 3,2 mm logo acima do bloco, entre as USB e o P2.
+
+| Parâmetro (`case.py`) | Valor | O que é |
+|---|---|---|
+| `ANT_D`, `ANT_L` | 5,0 / 60,0 mm | Grossura e comprimento da antena |
+| `ANT_Z` | 10,0 mm | Altura do eixo da antena |
+| `CH_R` | 2,7 mm | Raio do canal |
+| `TIE_W`, `TIE_T` | 3,5 / 1,4 mm | Túnel para abraçadeira de até 3 mm x 1,2 mm |
+| `TIE_OFFSET` | 18 mm | Túneis a 36 mm um do outro |
+| `CRADLE_L` | 56 mm | Comprimento do bloco |
+| `ANT_HOLE`, `ANT_HOLE_D` | x 10,5, z 15,6 / 3,2 mm | Furo de entrada do cabo |
+
+### Opção A (`feature/antena-holder`)
 
 | Parâmetro (`case.py`) | Valor | O que é |
 |---|---|---|
