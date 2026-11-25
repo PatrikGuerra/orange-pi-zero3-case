@@ -12,26 +12,30 @@ from pathlib import Path
 from build123d import (Align, Axis, Box, Compound, Cylinder, Plane, Pos, RegularPolygon, Rot, Sketch,
                        export_step, export_stl, extrude, fillet)
 
-# --- Board geometry, read from the reference STEP (tools/inspect_step.py, tools/find_holes.py) ---
-PCB_X = (-23.06, 31.94)            # main board 55 x 50.2 x 1.2
-PCB_Y = (-26.30, 23.90)
+# --- Board geometry ---
+# Main board: official Orange Pi file (oficial/pcb-assy_asm.stp), placed by tools/official_board.py.
+# Shield: community model (reference/motorbottle-case.stp), raised 0.1 mm because the
+# official PCB is 1.3 mm thick and the reference one 1.2 mm.
+PCB_X = (-23.08, 31.92)            # main board 55 x 50 x 1.3
+PCB_Y = (-26.24, 23.76)
 PCB_BOTTOM_Z = 5.15
-BOARD_HOLES = [(29.39, -23.75), (29.39, 21.35), (-20.51, 21.35), (-20.51, -23.75)]  # d = 3.0
-SHIELD_TOP_Z = 19.32
+BOARD_HOLES = [(29.41, -23.73), (29.41, 21.33), (-20.53, 21.33), (-20.53, -23.73)]  # d = 3.0
+SHIELD_DZ = 0.1
+SHIELD_TOP_Z = 19.32 + SHIELD_DZ
 SHIELD_HOLES = [(-4.31, -5.60), (23.72, 16.70)]                                      # d = 3.0
-TALLEST_Z = 35.01                  # stacked USB on the shield
-# Port bounding boxes (x0, x1, z0, z1). -Y: main board edge. +Y: shield edge.
+TALLEST_Z = 35.01 + SHIELD_DZ      # stacked USB on the shield
+# Port bounding boxes (x0, x1, z0, z1). -Y: main board edge (official). +Y: shield edge.
 PORTS_MINUS_Y = {
-    "micro_hdmi": (-16.86, -10.36, 6.53, 9.47),
-    "usb_c": (-5.01, -1.81, 7.05, 15.97),
-    "usb_a": (2.94, 8.74, 6.85, 20.05),
-    "rj45": (10.94, 25.94, 6.35, 19.85),
+    "micro_hdmi": (-18.46, -9.56, 5.78, 9.53),
+    "usb_c": (-5.56, -1.04, 4.90, 16.33),
+    "usb_a": (3.07, 8.77, 3.22, 20.25),
+    "rj45": (9.87, 26.31, 3.16, 20.26),
 }
 PORTS_PLUS_Y = {
-    "usb_x2": (-7.01, 8.59, 16.27, 35.01),
-    "audio": (11.50, 18.50, 19.17, 25.17),
+    "usb_x2": (-7.01, 8.59, 16.27 + SHIELD_DZ, 35.01 + SHIELD_DZ),
+    "audio": (11.50, 18.50, 19.17 + SHIELD_DZ, 25.17 + SHIELD_DZ),
 }
-MICROSD = (14.73, 25.74, 3.29, 4.29)   # card under the board, sticks out on +Y
+MICROSD = (14.41, 25.94, 3.29, 4.29)   # card under the board, sticks out on +Y (socket: official)
 
 # --- Case parameters ---
 WALL = 2.0
@@ -91,7 +95,7 @@ def port_windows(ports):
     c = PORT_CLEAR
     wins = sorted((x0 - c, x1 + c, z0 - c, z1 + c) for x0, x1, z0, z1 in ports.values())
     gaps = [(a[1], b[0], max(a[2], b[2]), min(a[3], b[3]))
-            for a, b in zip(wins, wins[1:]) if b[0] - a[1] < MIN_RIB]
+            for a, b in zip(wins, wins[1:]) if 0 < b[0] - a[1] < MIN_RIB]
     return wins + gaps
 
 

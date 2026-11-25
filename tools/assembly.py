@@ -1,12 +1,13 @@
-"""Write out/assembly.step: lid, base, board + shield (from the reference STEP) and a 4010 fan, in place."""
+"""Write out/assembly.step: lid, base, official board, community shield and a 4010 fan, in place."""
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build123d import Align, Box, Color, Compound, Cylinder, Pos, Rot, export_step, import_step  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from build123d import Align, Box, Color, Compound, Cylinder, Pos, Rot, export_step  # noqa: E402
 import case  # noqa: E402
+import official_board  # noqa: E402
 
-CASE_SOLIDS = {27, 28, 29}   # the MotorBottle case itself, not board parts
 UP_X = (Align.CENTER, Align.CENTER, Align.MIN)
 
 
@@ -26,13 +27,15 @@ def fan_4010():
     return frame + along_x(16, case.YC, case.FAN_ZC)
 
 
-board = [s for i, s in enumerate(import_step(str(Path(case.__file__).parent / "reference" / "motorbottle-case.stp")).solids())
-         if i not in CASE_SOLIDS and s.volume > 0]
+board = official_board.board_and_shield()
+shield, heatsink = board.pop("shield"), board.pop("heatsink")
 parts = [
     (case.make_lid(), "lid", Color(0.9, 0.5, 0.1, 0.5)),
     (case.make_base(), "base", Color(0.9, 0.5, 0.1)),
     (fan_4010(), "fan_4010", Color(0.15, 0.15, 0.15)),
-    (Compound(board), "board_and_shield", Color(0.1, 0.5, 0.2)),
+    (Compound(list(board.values())), "board_official", Color(0.1, 0.5, 0.2)),
+    (shield, "usb_shield", Color(0.1, 0.3, 0.7)),
+    (heatsink, "heatsink_standin", Color(0.7, 0.7, 0.7)),
 ]
 for shape, label, color in parts:
     shape.label, shape.color = label, color

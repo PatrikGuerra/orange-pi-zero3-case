@@ -4,26 +4,33 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from build123d import import_step  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import case  # noqa: E402
+import official_board  # noqa: E402
 
-CASE_SOLIDS = {27, 28, 29}   # the MotorBottle case itself, not board parts
-MSD_CARD = 32                # the card sticks out through the notch, ignore its tip
-
-solids = import_step(str(Path(case.__file__).parent / "reference" / "motorbottle-case.stp")).solids()
 parts = {"lid": case.make_lid(), "base": case.make_base()}
 bad = 0
-for i, s in enumerate(solids):
-    if i in CASE_SOLIDS or s.volume <= 0:
-        continue
-    for name, p in parts.items():
-        common = s & p
-        v = common.volume if common is not None else 0.0
-        if v > 0.01 and i != MSD_CARD:
-            print(f"OVERLAP solid {i} with {name}: {v:.2f} mm3")
-            bad += 1
+for label, shape in official_board.board_and_shield().items():
+    for s in shape.solids():
+        for name, p in parts.items():
+            common = s & p
+            v = common.volume if common is not None else 0.0
+            if v > 0.01:
+                print(f"OVERLAP {label} with {name}: {v:.2f} mm3")
+                bad += 1
 print(f"outer {case.X_OUT[1] - case.X_OUT[0]:.1f} x {case.Y_OUT[1] - case.Y_OUT[0]:.1f} x {case.HEIGHT:.1f} mm")
 assert bad == 0, f"{bad} overlaps"
+
+# Ports: every port of the official board ends inside the case and faces its window
+ports = official_board.load()
+for label, key in (("03_11_13_0003_HDMI0001", "micro_hdmi"), ("TYPE_C_CC", "usb_c"),
+                   ("_USB_ASM_3_ASM", "usb_a"), ("RJ45", "rj45")):
+    b = ports[label].bounding_box()
+    x0, x1, z0, z1 = case.PORTS_MINUS_Y[key]
+    tol = 0.01   # the dict values are rounded to 0.01 mm
+    assert x0 <= b.min.X + tol and b.max.X <= x1 + tol and z0 <= b.min.Z + tol and b.max.Z <= z1 + tol, \
+        f"{key} window does not cover the official part"
+    assert b.min.Y > case.Y_IN[0], f"{key} sticks into the wall"
 
 # Fan: nuts clear the plate and the roof, and the fan stays inside the case outline
 low, high = case.FAN_ZC - case.FAN_HOLE_PITCH / 2, case.FAN_ZC + case.FAN_HOLE_PITCH / 2
