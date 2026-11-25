@@ -63,6 +63,7 @@ STANDOFF_D = 6.0
 PORT_CLEAR = 1.0                   # margin around each main board port window
 MERGED_PORTS = [("usb_a", "rj45")] # ports cut as one window, no wall strip between them
 SHIELD_PORT_CLEAR = 1.0            # margin around the shield USB and audio windows (1 to 2 mm)
+ROUND_PORTS = {"audio"}            # round connector fronts: cut as a circle, d = front + 2 x margin
 MIN_RIB = 1.5                      # thinner wall strips between windows are cut away
 FAN = 40.0                         # 4010 fan, inside the case against the -X wall
 FAN_T = 10.0
@@ -106,6 +107,14 @@ def cyl_z(x, y, d, z0, z1):
 
 def cyl_x(x0, x1, y, z, d):
     return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(d / 2, x1 - x0, align=(Align.CENTER, Align.CENTER, Align.MIN))
+
+
+def round_window(port, c):
+    """Circle through the +Y wall around a round connector front (x0, x1, z0, z1)."""
+    x0, x1, z0, z1 = port
+    d = max(x1 - x0, z1 - z0) + 2 * c
+    length = Y_OUT[1] - Y_IN[1] + 2
+    return Pos((x0 + x1) / 2, Y_IN[1] - 1 + length / 2, (z0 + z1) / 2) * Rot(90, 0, 0) * Cylinder(d / 2, length)
 
 
 def port_windows(ports, c=None, merge=()):
@@ -153,8 +162,11 @@ def make_lid():
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
     # +Y: the shield ports reach into the wall. The windows stay closed below; the PETG
     # wall flexes out over the ports when the lid goes on.
-    for w in port_windows(PORTS_PLUS_Y, SHIELD_PORT_CLEAR):
+    square = {k: v for k, v in PORTS_PLUS_Y.items() if k not in ROUND_PORTS}
+    for w in port_windows(square, SHIELD_PORT_CLEAR):
         lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, w[2], w[3])
+    for k in ROUND_PORTS:
+        lid -= round_window(PORTS_PLUS_Y[k], SHIELD_PORT_CLEAR)
     # microSD: notch open to the bottom edge, so the lid slides down past the card
     lid -= microsd_notch()
 

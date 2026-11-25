@@ -61,6 +61,20 @@ recess = case.Y_OUT[1] - 26.80
 assert 0 <= recess <= 0.5, f"shield ports sit {recess:.2f} mm behind the outside face"
 print(f"shield ports {recess:.2f} mm behind the outside face")
 
+# Round audio window: the jack front, where it passes the wall, fits inside the circle
+jack = board["shield"].solids()
+wall = case.box(-60, 60, case.Y_IN[1], case.Y_OUT[1] + 1, -10, 60)
+hole = case.round_window(case.PORTS_PLUS_Y["audio"], case.SHIELD_PORT_CLEAR)
+x0, x1, z0, z1 = case.PORTS_PLUS_Y["audio"]
+for s in jack:
+    b = s.bounding_box()
+    if not (x0 <= b.center().X <= x1 and b.max.Y > case.Y_IN[1]):
+        continue
+    front = s & wall
+    rest = front - hole if front is not None else None
+    assert rest is None or rest.volume < 0.01, f"audio jack hits the round window: {rest.volume:.2f} mm3"
+print(f"audio window round, d = {max(x1 - x0, z1 - z0) + 2 * case.SHIELD_PORT_CLEAR:.1f} mm")
+
 # Fan: inside the case, touching neither the lid, the base nor any board part
 fan = case.make_fan()
 for name, p in [("lid", parts["lid"]), ("base", parts["base"])] + list(board.items()):
