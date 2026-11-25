@@ -1,4 +1,4 @@
-"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 side fan, outside Wi-Fi antenna.
+"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 fan, Wi-Fi whip antenna clipped outside.
 
 Two parts:
 - lid: 5-sided box (walls + roof), printed roof down.
@@ -76,7 +76,14 @@ GRILLE_CELL, GRILLE_RIB = 6.0, 1.4 # hexagon flat-to-flat width, wall between ce
 CORNER_R = 3.0                     # outside vertical corners of the lid
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
-ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
+ANT_D, ANT_L = 5.0, 60.0           # round whip antenna (guess, check with calipers)
+ANT_FIT = 0.2                      # clip grips 0.2 mm under the antenna diameter
+CLIP_T = 1.6                       # clip ring wall
+CLIP_W = 6.0                       # clip length along the antenna
+CLIP_OPEN = 0.75                   # clip mouth as a share of the antenna diameter
+ANT_HOLE_D = 3.2                   # cable hole; the IPEX plug (about 2 mm) passes
+# (y, z) on the last exhaust slot, under the 13-pin socket (z 9.3) and over the board (z 6.45)
+ANT_HOLE = (17.25, 8.0)
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
 BAY_DEPTH = FAN_T + FAN_GAP
@@ -98,6 +105,7 @@ X_OUT = (X_IN[0] - WALL, X_IN[1] + WALL)
 Y_OUT = (Y_IN[0] - WALL, Y_IN[1] + WALL)
 YC = sum(Y_IN) / 2
 PCB_TOP_Z = PCB_BOTTOM_Z + 1.3
+ANT_CLIPS_Y = (YC - 15.0, YC + 15.0)   # 2 clips, 30 mm apart
 MIN = (Align.MIN, Align.MIN, Align.MIN)
 
 
@@ -159,6 +167,29 @@ def microsd_notch():
     return box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
 
 
+def antenna_axis():
+    """(x, z) of the antenna axis: outside the +X wall, just under the top edge."""
+    r_out = (ANT_D - ANT_FIT) / 2 + CLIP_T
+    return X_OUT[1] + r_out, Z_TOP - r_out
+
+
+def antenna_clip(yc):
+    """C-clip on the +X wall at y = yc. The mouth faces +X, so the antenna snaps in sideways."""
+    x, z = antenna_axis()
+    r_in = (ANT_D - ANT_FIT) / 2
+    r_out = r_in + CLIP_T
+
+    def cyl_y(r):
+        return Pos(x, yc - CLIP_W / 2, z) * Rot(-90, 0, 0) * Cylinder(r, CLIP_W, align=(Align.CENTER, Align.CENTER, Align.MIN))
+
+    y0, y1 = yc - CLIP_W / 2, yc + CLIP_W / 2
+    clip = cyl_y(r_out) + box(X_OUT[1] - 0.2, x, y0, y1, z - r_out, z + r_out)   # foot on the wall
+    clip -= cyl_y(r_in)
+    m = CLIP_OPEN * ANT_D / 2
+    clip -= box(x, x + r_out + 1, y0 - 1, y1 + 1, z - m, z + m)                  # mouth
+    return clip & box(X_OUT[1] - 0.2, x + r_out + 1, y0, y1, Z_BOT, Z_TOP)       # no lip above the roof
+
+
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
     lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
@@ -184,20 +215,19 @@ def make_lid():
         for dz in (-p, p):
             lid -= cyl_x(*wall, YC + dy, FAN_ZC + dz, SCREW_PASS)
 
-    # +X wall: exhaust slots low (air between board and shield), antenna holder high
+    # +X wall: exhaust slots low (air between board and shield)
     wall = (X_IN[1] - 1, X_OUT[1] + 1)
     y = -20.0
     while y + 2.5 <= 20.0:
         lid -= box(*wall, y, y + 2.5, PLATE_TOP_Z + 2, 21.0)
         y += 4.5
-    ant_z0 = 25.0
-    ant_y0 = YC - ANT_L / 2 - 0.5
-    ant_y1 = YC + ANT_L / 2 + 0.5
-    rail = 1.2
-    for z0 in (ant_z0 - rail, ant_z0 + ANT_W + 0.5):           # top and bottom rails
-        lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y0 - rail, ant_y1 + rail, z0, z0 + rail)
-    lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y1, ant_y1 + rail, ant_z0, ant_z0 + ANT_W + 0.5)  # end stop
-    lid -= box(*wall, ant_y0 + 10, ant_y0 + 16, ant_z0 + 2, ant_z0 + 5)   # cable slot
+    # Antenna: round whip lying along Y outside the +X wall near the top, held by 2 C-clips.
+    # Its cable leaves through a hole on the last exhaust slot, between the boards.
+    for yc in ANT_CLIPS_Y:
+        lid += antenna_clip(yc)
+    hy, hz = ANT_HOLE
+    lid -= Pos(X_IN[1], hy, hz) * Rot(0, 90, 0) * Cylinder(ANT_HOLE_D / 2, WALL + 1,
+                                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
 
     # Towers from the roof down to the board top at its 4 holes, cut flat where a
     # -Y port (HDMI, RJ45) comes within reach. The base screws thread into them.

@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import case  # noqa: E402
 import official_board  # noqa: E402
+from build123d import Align, Cylinder, Pos, Rot  # noqa: E402
 
 parts = {"lid": case.make_lid(), "base": case.make_base()}
 board = official_board.board_and_shield()
@@ -93,6 +94,26 @@ assert case.PLATE_TOP_Z <= fb.min.Z and fb.max.Z <= case.ROOF_IN, "fan does not 
 bite = case.BOARD_SCREW_L - (case.PCB_TOP_Z - case.Z_BOT)
 assert bite >= 6.0, f"M3 x {case.BOARD_SCREW_L:g} bites only {bite:.1f} mm into the towers"
 print(f"board screws: M3 x {case.BOARD_SCREW_L:g}, {bite:.1f} mm into the towers")
+
+# Antenna clips: on the wall, mouth narrow enough to snap, antenna clear of the case
+ax, az = case.antenna_axis()
+mouth = case.CLIP_OPEN * case.ANT_D
+assert 0.6 * case.ANT_D <= mouth < case.ANT_D, f"clip mouth {mouth:.1f} mm does not snap a {case.ANT_D} mm antenna"
+for yc in case.ANT_CLIPS_Y:
+    assert case.Y_OUT[0] <= yc - case.CLIP_W / 2 and yc + case.CLIP_W / 2 <= case.Y_OUT[1], "clip runs off the wall"
+whip = Pos(ax, case.YC - case.ANT_L / 2, az) * Rot(-90, 0, 0) * Cylinder(case.ANT_D / 2 - 0.15, case.ANT_L,
+                                                                       align=(Align.CENTER, Align.CENTER, Align.MIN))
+c = whip & parts["lid"]
+assert c is None or c.volume < 0.01, f"antenna hits the lid: {c.volume:.2f} mm3"
+# Cable hole: clear of the towers, the board and the shield, from the board edge to the wall
+hy, hz = case.ANT_HOLE
+x0 = case.PCB_X[1] + 0.05
+hole = Pos(x0, hy, hz) * Rot(0, 90, 0) * Cylinder(case.ANT_HOLE_D / 2, case.X_IN[1] - x0,
+                                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
+for name, p in [("lid", parts["lid"])] + list(board.items()):
+    c = hole & p
+    assert c is None or c.volume < 0.01, f"antenna cable path hits {name}"
+print(f"antenna: {case.ANT_D:g} mm whip, 2 clips, mouth {mouth:.2f} mm, axis {case.Z_TOP - az:.1f} mm under the top")
 
 # Tower ribs: each tower is tied to its 2 nearest walls (a probe at mid-rib hits the lid)
 for x, y in case.BOARD_HOLES:

@@ -55,7 +55,7 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 - **Base**: placa de 3,5 mm que encaixa por dentro da tampa. Imprimir deitada.
 - Ventoinha 4010 dentro, encostada na parede -X (lado do GPIO), presa por fora com 4 x M3 x 10 que roscam nos furos da ventoinha. Grade em colmeia na parede.
 - Saída de ar: frestas na parede +X, na altura entre a placa e a placa USB.
-- Antena: trilhos por fora da parede +X, acima das frestas, com fenda para o cabo.
+- Antena: redonda, deitada por fora da parede +X, perto do topo, presa por 2 presilhas em C. O cabo sai por um furo de 3,2 mm na última fresta. Opções em `ANTENNA-OPTIONS.md`.
 - Fixação: 4 torres descem do teto até os furos da placa. 4 x M3 x 16 por baixo passam pela base e pela placa e roscam nas torres (7,2 mm de rosca). Os mesmos 4 parafusos prendem base + placa. Use pés de borracha de 2 mm ou mais, porque as cabeças ficam para fora.
 - 2 colunas no teto prendem a placa USB com 2 parafusos M3 x 5, por baixo da placa USB, direto na coluna. O teto fica fechado.
 
