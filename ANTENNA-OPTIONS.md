@@ -22,16 +22,16 @@ Medidas de partida, a confirmar com paquímetro: 5 mm de grossura e 60 mm de com
 
 ### Opção B, versão simples (`feature/antenna-zip-tie`)
 
-A antena fica deitada direto na face das USB da placa USB, abaixo da janela delas e acima da fenda do microSD. Não tem canal nem bloco. São 4 furos na parede, 2 para cada abraçadeira (Hellermann): um acima e um abaixo da antena. A abraçadeira entra por um furo, desce por dentro da parede, sai pelo outro e fecha em volta da antena. O cabo entra por um furo de 3,2 mm logo acima da antena, à esquerda da fita da direita (vista de fora), abaixo do P2.
+A antena fica deitada direto na face das USB da placa USB, abaixo da janela delas e acima da fenda do microSD. Não tem canal nem bloco. São 4 furos na parede, 2 para cada abraçadeira (Hellermann): um acima e um abaixo da antena. A abraçadeira entra por um furo, desce por dentro da parede, sai pelo outro e fecha em volta da antena. O cabo entra por um furo de 3 mm logo abaixo da antena, à esquerda da fita da direita (vista de fora), 0,6 mm acima da fenda do microSD.
 
 | Parâmetro (`case.py`) | Valor | O que é |
 |---|---|---|
 | `ANT_D`, `ANT_L` | 5,0 / 60,0 mm | Grossura e comprimento da antena |
-| `ANT_Z` | 11,5 mm | Altura do eixo da antena |
+| `ANT_Z` | 12,0 mm | Altura do eixo da antena |
 | `TIE_HOLE` | 3,4 x 1,8 mm | Furo para abraçadeira de até 3 x 1,2 mm |
 | `TIE_GAP` | 0,9 mm | Plástico entre cada furo e a antena |
 | `TIE_X` | -14 / 15 mm | Posição das 2 abraçadeiras |
-| `ANT_HOLE`, `ANT_HOLE_D` | x 20,5, z 15,6 / 3,2 mm | Furo de entrada do cabo |
+| `ANT_HOLE`, `ANT_HOLE_D` | x 20,5, z 7,9 / 3,0 mm | Furo de entrada do cabo |
 
 ### Opção A (`feature/antena-holder`)
 

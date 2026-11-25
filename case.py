@@ -79,13 +79,14 @@ SCREW_PASS = 3.4
 ANT_D, ANT_L = 5.0, 60.0           # round whip antenna (guess, check with calipers)
 # Option B, simple: the antenna lies on the +Y face (shield USB side), below the USB window.
 # 2 zip ties (Hellermann), each through a pair of holes, one above and one below the antenna.
-ANT_Z = 11.5                       # antenna axis height
+ANT_Z = 12.0                       # antenna axis height (max for the x = 15 tie to clear the audio jack)
 TIE_HOLE = (3.4, 1.8)              # hole width (x) and height (z): zip ties up to 3 x 1.2 mm
 TIE_GAP = 0.9                      # plastic between each hole and the antenna
 TIE_X = (-14.0, 15.0)              # clear of the microSD notch, the audio jack and the cable hole
-ANT_HOLE_D = 3.2                   # cable hole; the IPEX plug (about 2 mm) passes
-# (x, z) in the +Y wall: left of the x = 15 tie (seen from outside), under the audio jack
-ANT_HOLE = (20.5, 15.6)
+ANT_HOLE_D = 3.0                   # cable hole; the IPEX plug (about 2 mm) passes
+# (x, z) in the +Y wall: left of the x = 15 tie (seen from outside), under the antenna,
+# 0.6 mm over the microSD notch
+ANT_HOLE = (20.5, 7.9)
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
 BAY_DEPTH = FAN_T + FAN_GAP

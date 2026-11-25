@@ -122,6 +122,10 @@ for x in case.TIE_X:   # inside, the tie runs up the wall from one hole to the o
         c = loop & p
         assert c is None or c.volume < 0.01, f"zip tie at x={x} hits {name} inside"
 assert hz + case.ANT_HOLE_D / 2 <= usb_bottom, "cable hole runs into the USB window"
+assert hz + case.ANT_HOLE_D / 2 <= az - case.ANT_D / 2 + 1e-6, "cable hole is not under the antenna"
+if sd_x[0] < hx + case.ANT_HOLE_D / 2 and hx - case.ANT_HOLE_D / 2 < sd_x[1]:
+    bridge = hz - case.ANT_HOLE_D / 2 - sd_top
+    assert bridge >= 0.6 - 1e-6, f"only {bridge:.2f} mm of wall between the cable hole and the microSD notch"
 c = case.make_antenna() & parts["lid"]
 assert c is None or c.volume < 0.01, f"antenna hits the lid: {c.volume:.2f} mm3"
 # Cable hole: clear of the board and the shield, from the shield edge to the wall
