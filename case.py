@@ -49,10 +49,11 @@ PLATE = 3.5
 PLATE_TOP_Z = PCB_BOTTOM_Z - 4.0
 FIT = 0.25                         # plate-to-lid gap per side
 HEAD_D, HEAD_H = 6.5, 1.8          # counterbore for an M3 button head (5.7 x 1.65)
-BOSS_D = 7.0
-# Boss inset from the inner wall: the counterbore keeps 1 mm of plate to the plate edge.
-BOSS_INSET = FIT + HEAD_D / 2 + 1.0
-SIDE_MARGIN = BOSS_INSET + BOSS_D / 2 + 0.5   # boss stays 0.5 mm off the board edge
+# Towers from the roof down to the board holes. 4 x M3 x 16 from below go through the base
+# standoffs and the board into the towers, so the same 4 screws hold base + board.
+TOWER_D = [6.0, 5.0, 6.0, 6.0]     # per BOARD_HOLES; hole 2 sits in the shield's corner notch
+BOARD_SCREW_L = 16.0
+STANDOFF_D = 6.0
 PORT_CLEAR = 1.0                   # margin around each main board port window
 SHIELD_PORT_CLEAR = 1.0            # margin around the shield USB and audio windows (1 to 2 mm)
 MIN_RIB = 1.5                      # thinner wall strips between windows are cut away
@@ -66,13 +67,11 @@ CORNER_R = 3.0                     # outside vertical corners of the lid
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
 ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
-TAB_W, TAB_DEPTH, TAB_T = 3.8, 1.6, 1.5   # base hooks that go into the -X wall
-TAB_GAP = 0.3
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
 BAY_DEPTH = FAN_T + FAN_GAP
-BAY_END_X = min(PCB_X[0], min(x for x, _ in BOARD_HOLES) - 3.0) - 0.3
-X_IN = (BAY_END_X - BAY_DEPTH, PCB_X[1] + SIDE_MARGIN)
+BAY_END_X = min(PCB_X[0], min(x for x, _ in BOARD_HOLES) - STANDOFF_D / 2) - 0.3
+X_IN = (BAY_END_X - BAY_DEPTH, PCB_X[1] + 0.5)
 SHIELD_EDGE_Y = 24.70              # shield PCB edge; its USB and audio tips are at y = 26.80
 # -Y: port tips + clearance. +Y: wall right at the shield edge, so the shield ports sit
 # 0.3 mm behind the outside face (near flush) instead of 2.4 mm deep.
@@ -86,12 +85,7 @@ ROOF_IN = Z_TOP - ROOF
 X_OUT = (X_IN[0] - WALL, X_IN[1] + WALL)
 Y_OUT = (Y_IN[0] - WALL, Y_IN[1] + WALL)
 YC = sum(Y_IN) / 2
-I = BOSS_INSET
-# Only on +X: the fan fills the -X side, so the base hooks into the -X wall there.
-BOSSES = [(X_IN[1] - I, Y_IN[0] + I), (X_IN[1] - I, Y_IN[1] - I)]
-# Hooks sit in the corners beside the fan, below the wall's full-height part.
-TABS_Y = [(Y_IN[0] + 0.5, Y_IN[0] + 0.5 + TAB_W), (Y_IN[1] - 0.5 - TAB_W, Y_IN[1] - 0.5)]
-TAB_Z = (PLATE_TOP_Z - TAB_T, PLATE_TOP_Z)
+PCB_TOP_Z = PCB_BOTTOM_Z + 1.3
 MIN = (Align.MIN, Align.MIN, Align.MIN)
 
 
@@ -160,9 +154,6 @@ def make_lid():
     for dy in (-p, p):
         for dz in (-p, p):
             lid -= cyl_x(*wall, YC + dy, FAN_ZC + dz, SCREW_PASS)
-    # Slots for the base hooks
-    for y0, y1 in TABS_Y:
-        lid -= box(*wall, y0 - TAB_GAP, y1 + TAB_GAP, TAB_Z[0] - TAB_GAP, TAB_Z[1] + TAB_GAP)
 
     # +X wall: exhaust slots low (air between board and shield), antenna holder high
     wall = (X_IN[1] - 1, X_OUT[1] + 1)
@@ -177,16 +168,19 @@ def make_lid():
     for z0 in (ant_z0 - rail, ant_z0 + ANT_W + 0.5):           # top and bottom rails
         lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y0 - rail, ant_y1 + rail, z0, z0 + rail)
     lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y1, ant_y1 + rail, ant_z0, ant_z0 + ANT_W + 0.5)  # end stop
-    lid -= box(*wall, ant_y0 + 10, ant_y0 + 16, ant_z0 + 2, ant_z0 + 5)   # cable slot, clear of the boss
+    lid -= box(*wall, ant_y0 + 10, ant_y0 + 16, ant_z0 + 2, ant_z0 + 5)   # cable slot
 
-    # Screw bosses from the roof down to the plate, tied to the corner walls,
-    # and 2 posts that keep the shield seated
-    for x, y in BOSSES:
-        xw = X_IN[1]
-        yw = Y_IN[0] if y < 0 else Y_IN[1]
-        lid += box(min(x, xw), max(x, xw), min(y, yw), max(y, yw), PLATE_TOP_Z, ROOF_IN)
-        lid += cyl_z(x, y, BOSS_D, PLATE_TOP_Z, ROOF_IN)
-        lid -= cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1, PLATE_TOP_Z + 10)
+    # Towers from the roof down to the board top at its 4 holes, cut flat where a
+    # -Y port (HDMI, RJ45) comes within reach. The base screws thread into them.
+    bite = BOARD_SCREW_L - (PCB_TOP_Z - Z_BOT)
+    for (x, y), d in zip(BOARD_HOLES, TOWER_D):
+        tower = cyl_z(x, y, d, PCB_TOP_Z, ROOF_IN)
+        if X_IN[1] - (x + d / 2) < 1.0:   # almost touching the +X wall: join them
+            tower += box(x, X_IN[1], y - d / 3, y + d / 3, PCB_TOP_Z, ROOF_IN)
+        for x0, x1, _, z1 in PORTS_MINUS_Y.values():
+            tower -= box(x0 - 0.3, x1 + 0.3, Y_IN[0] - 1, 0, PCB_TOP_Z - 1, z1 + 0.3)
+        lid += tower
+        lid -= cyl_z(x, y, SCREW_TAP, PCB_TOP_Z - 1, PCB_TOP_Z + bite + 1.5)
     # Shield posts: the shield is screwed to the lid with M3 x 5 from below (blind hole,
     # roof stays closed), so lid + shield go on together and plug onto the 13-pin header.
     keep = box(SHIELD_KEEPOUT[0] - 0.3, SHIELD_KEEPOUT[1] + 0.3, SHIELD_KEEPOUT[2] - 0.3,
@@ -212,14 +206,10 @@ def make_fan():
 def make_base():
     base = box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT, PLATE_TOP_Z)
     for x, y in BOARD_HOLES:
-        base += cyl_z(x, y, 6.0, PLATE_TOP_Z, PCB_BOTTOM_Z)
-        base -= cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1.5, PCB_BOTTOM_Z + 1)
-    for x, y in BOSSES:
-        base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PLATE_TOP_Z + 1)
-        base -= cyl_z(x, y, HEAD_D, Z_BOT - 1, Z_BOT + HEAD_H)   # counterbore for M3 button head
-    # Hooks: hook these into the -X wall slots first, then swing the base up and screw +X
-    for y0, y1 in TABS_Y:
-        base += box(X_IN[0] - TAB_DEPTH, X_IN[0] + FIT, y0, y1, *TAB_Z)
+        # Standoff with a through hole: the M3 x 16 goes base -> board -> tower. No head
+        # counterbore: the holes sit too close to the plate edge; feet lift the heads.
+        base += cyl_z(x, y, STANDOFF_D, PLATE_TOP_Z, PCB_BOTTOM_Z)
+        base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PCB_BOTTOM_Z + 1)
     return base
 
 

@@ -62,10 +62,10 @@ fb = fan.bounding_box()
 assert case.X_IN[0] <= fb.min.X and fb.max.X <= case.PCB_X[0], "fan is not between the -X wall and the board"
 assert case.PLATE_TOP_Z <= fb.min.Z and fb.max.Z <= case.ROOF_IN, "fan does not fit in height"
 
-# Bosses: the screw head counterbore keeps >= 1 mm of plate to the plate edge
-for x, y in case.BOSSES:
-    edge = min(x - case.X_IN[0], case.X_IN[1] - x, y - case.Y_IN[0], case.Y_IN[1] - y) - case.FIT
-    assert edge - case.HEAD_D / 2 >= 1.0 - 1e-6, f"screw head too close to the wall at ({x:.1f}, {y:.1f})"
+# Board screws: M3 x BOARD_SCREW_L from below bites >= 6 mm into each tower
+bite = case.BOARD_SCREW_L - (case.PCB_TOP_Z - case.Z_BOT)
+assert bite >= 6.0, f"M3 x {case.BOARD_SCREW_L:g} bites only {bite:.1f} mm into the towers"
+print(f"board screws: M3 x {case.BOARD_SCREW_L:g}, {bite:.1f} mm into the towers")
 
 # Fan grille: enough open area, and cells big enough for a 2-pin Dupont plug (5.1 x 2.5 mm)
 g = case.fan_grille(case.X_OUT[0] - 1, 4.0)
