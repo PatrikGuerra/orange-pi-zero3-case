@@ -29,8 +29,14 @@ SHIELD_SCREW_L = 5.0               # M3 x 5 from under the shield, self-tapping 
 SHIELD_HEAD_D, SHIELD_HEAD_H = 6.0, 3.0   # room kept under the shield for the screw head
 SHIELD_KEEPOUT = (20.43, 25.77, 19.31, 24.65, 21.32 + SHIELD_DZ)  # x0, x1, y0, y1, z1 of a part beside post 2
 TALLEST_Z = 35.01 + SHIELD_DZ      # stacked USB on the shield
-# Port bounding boxes (x0, x1, z0, z1). -Y: main board edge (official). +Y: shield edge.
+# -Y: main board (official). Faces = connector fronts where they pass the wall; bodies = whole parts.
 PORTS_MINUS_Y = {
+    "micro_hdmi": (-17.26, -10.76, 6.63, 9.53),
+    "usb_c": (-4.88, -1.72, 7.09, 16.03),
+    "usb_a": (3.07, 8.77, 7.05, 20.25),
+    "rj45": (10.09, 26.09, 6.96, 20.26),
+}
+PORT_BODIES_MINUS_Y = {
     "micro_hdmi": (-18.46, -9.56, 5.78, 9.53),
     "usb_c": (-5.56, -1.04, 4.90, 16.33),
     "usb_a": (3.07, 8.77, 3.22, 20.25),
@@ -55,6 +61,7 @@ TOWER_D = [6.0, 5.0, 6.0, 6.0]     # per BOARD_HOLES; hole 2 sits in the shield'
 BOARD_SCREW_L = 16.0
 STANDOFF_D = 6.0
 PORT_CLEAR = 1.0                   # margin around each main board port window
+MERGED_PORTS = [("usb_a", "rj45")] # ports cut as one window, no wall strip between them
 SHIELD_PORT_CLEAR = 1.0            # margin around the shield USB and audio windows (1 to 2 mm)
 MIN_RIB = 1.5                      # thinner wall strips between windows are cut away
 FAN = 40.0                         # 4010 fan, inside the case against the -X wall
@@ -101,11 +108,17 @@ def cyl_x(x0, x1, y, z, d):
     return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(d / 2, x1 - x0, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
 
-def port_windows(ports, c=None):
-    """Port windows (x0, x1, z0, z1) with margin c. A rib thinner than MIN_RIB between two
-    neighbours breaks off, so that gap is opened too (over the z range both windows share)."""
+def port_windows(ports, c=None, merge=()):
+    """Port windows (x0, x1, z0, z1) with margin c. Each group in merge becomes one window
+    around all its ports. A rib thinner than MIN_RIB between two neighbours breaks off,
+    so that gap is opened too (over the z range both windows share)."""
     c = PORT_CLEAR if c is None else c
-    wins = sorted((x0 - c, x1 + c, z0 - c, z1 + c) for x0, x1, z0, z1 in ports.values())
+    grown = {k: (x0 - c, x1 + c, z0 - c, z1 + c) for k, (x0, x1, z0, z1) in ports.items()}
+    for group in merge:
+        ws = [grown.pop(k) for k in group]
+        grown["+".join(group)] = (min(w[0] for w in ws), max(w[1] for w in ws),
+                                  min(w[2] for w in ws), max(w[3] for w in ws))
+    wins = sorted(grown.values())
     gaps = [(a[1], b[0], max(a[2], b[2]), min(a[3], b[3]))
             for a, b in zip(wins, wins[1:]) if 0 < b[0] - a[1] < MIN_RIB]
     return wins + gaps
@@ -136,7 +149,7 @@ def microsd_notch():
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
     lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
-    for w in port_windows(PORTS_MINUS_Y):
+    for w in port_windows(PORTS_MINUS_Y, PORT_CLEAR, MERGED_PORTS):
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
     # +Y: the shield ports reach into the wall. The windows stay closed below; the PETG
     # wall flexes out over the ports when the lid goes on.
@@ -177,7 +190,7 @@ def make_lid():
         tower = cyl_z(x, y, d, PCB_TOP_Z, ROOF_IN)
         if X_IN[1] - (x + d / 2) < 1.0:   # almost touching the +X wall: join them
             tower += box(x, X_IN[1], y - d / 3, y + d / 3, PCB_TOP_Z, ROOF_IN)
-        for x0, x1, _, z1 in PORTS_MINUS_Y.values():
+        for x0, x1, _, z1 in PORT_BODIES_MINUS_Y.values():
             tower -= box(x0 - 0.3, x1 + 0.3, Y_IN[0] - 1, 0, PCB_TOP_Z - 1, z1 + 0.3)
         lid += tower
         lid -= cyl_z(x, y, SCREW_TAP, PCB_TOP_Z - 1, PCB_TOP_Z + bite + 1.5)

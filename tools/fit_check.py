@@ -37,16 +37,24 @@ for x, y in case.SHIELD_HOLES:
     assert bite >= 3.0, f"M3 x {case.SHIELD_SCREW_L:g} bites only {bite:.1f} mm into the post"
     print(f"shield screw at ({x}, {y}): M3 x {case.SHIELD_SCREW_L:g}, {bite:.1f} mm into the post")
 
-# Ports: every port of the official board ends inside the case and faces its window
+# Ports: each official connector, where it passes the wall, sits inside its window
 ports = official_board.load()
+slab = case.box(-60, 60, case.Y_OUT[0] - 1, case.Y_IN[0] + 1.5, -10, 60)
+wins = case.port_windows(case.PORTS_MINUS_Y, case.PORT_CLEAR, case.MERGED_PORTS)
 for label, key in (("03_11_13_0003_HDMI0001", "micro_hdmi"), ("TYPE_C_CC", "usb_c"),
                    ("_USB_ASM_3_ASM", "usb_a"), ("RJ45", "rj45")):
-    b = ports[label].bounding_box()
-    x0, x1, z0, z1 = case.PORTS_MINUS_Y[key]
-    tol = 0.01   # the dict values are rounded to 0.01 mm
-    assert x0 <= b.min.X + tol and b.max.X <= x1 + tol and z0 <= b.min.Z + tol and b.max.Z <= z1 + tol, \
-        f"{key} window does not cover the official part"
-    assert b.min.Y > case.Y_IN[0], f"{key} sticks into the wall"
+    assert ports[label].bounding_box().min.Y > case.Y_IN[0], f"{key} sticks into the wall"
+    for s in ports[label].solids():
+        c = s & slab
+        if c is None or c.volume < 0.001:
+            continue
+        b = c.bounding_box()
+        tol = 0.01   # the dict values are rounded to 0.01 mm
+        assert any(w[0] <= b.min.X + tol and b.max.X <= w[1] + tol and w[2] <= b.min.Z + tol
+                   and b.max.Z <= w[3] + tol for w in wins), f"{key} window does not cover the connector"
+merged = [w for w in wins if w[0] <= case.PORTS_MINUS_Y["usb_a"][0] and case.PORTS_MINUS_Y["rj45"][1] <= w[1]]
+assert merged, "USB-A and RJ45 are not one window"
+print("main ports:", ", ".join(f"{w[1] - w[0]:.1f} x {w[3] - w[2]:.1f}" for w in sorted(wins)))
 
 # Shield ports end near the outside face (flush look), not deep inside the case
 recess = case.Y_OUT[1] - 26.80
@@ -75,8 +83,9 @@ assert case.GRILLE_CELL >= math.hypot(5.1, 2.5), "Dupont plug does not pass a gr
 print(f"fan grille {open_ratio:.0%} open")
 
 # Port walls: a strip thinner than MIN_RIB between two windows must be cut away
-for ports, clear in ((case.PORTS_MINUS_Y, case.PORT_CLEAR), (case.PORTS_PLUS_Y, case.SHIELD_PORT_CLEAR)):
-    wins = case.port_windows(ports, clear)
+for ports, clear, merge in ((case.PORTS_MINUS_Y, case.PORT_CLEAR, case.MERGED_PORTS),
+                            (case.PORTS_PLUS_Y, case.SHIELD_PORT_CLEAR, ())):
+    wins = case.port_windows(ports, clear, merge)
     edges = {(w[0], w[1]) for w in wins}
     for a in wins:
         for b in wins:
