@@ -61,7 +61,10 @@ SCREW_PASS = 3.4
 ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
 
 X_IN = (PCB_X[0] - SIDE_MARGIN, PCB_X[1] + SIDE_MARGIN)
-Y_IN = (-27.40 - 0.4, 26.80 + 0.4)   # port tips + clearance
+SHIELD_EDGE_Y = 24.70              # shield PCB edge; its USB and audio tips are at y = 26.80
+# -Y: port tips + clearance. +Y: wall right at the shield edge, so the shield ports sit
+# 0.3 mm behind the outside face (near flush) instead of 2.4 mm deep.
+Y_IN = (-27.40 - 0.4, SHIELD_EDGE_Y + 0.4)
 Z_BOT = PLATE_TOP_Z - PLATE
 # Fan nuts sit inside: the low ones must clear the plate, the high ones the roof.
 FAN_ZC = PLATE_TOP_Z + NUT_R + FAN_HOLE_PITCH / 2
@@ -116,16 +119,22 @@ def fan_grille(x0, depth):
     return extrude(Sketch() + cells, amount=depth) & cyl_x(x0, x0 + depth, YC, FAN_ZC, GRILLE_D)
 
 
+def microsd_notch():
+    x0, x1, _, z1 = MICROSD
+    return box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
+
+
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
     lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
     for w in port_windows(PORTS_MINUS_Y):
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
+    # +Y: the shield ports reach into the wall, so their windows are open to the bottom
+    # edge (the lid slides down past them). The base fills the wall back in below each port.
     for w in port_windows(PORTS_PLUS_Y):
-        lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, w[2], w[3])
+        lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, w[3])
     # microSD: notch open to the bottom edge, so the lid slides down past the card
-    x0, x1, _, z1 = MICROSD
-    lid -= box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
+    lid -= microsd_notch()
 
     # -X wall: fan intake. Honeycomb of point-up hexagons: prints on a vertical wall
     # without supports, and a 2-pin Dupont plug (5.1 x 2.5) passes through any cell.
@@ -171,7 +180,17 @@ def make_base():
     for x, y in BOSSES:
         base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PLATE_TOP_Z + 1)
         base -= cyl_z(x, y, HEAD_D, Z_BOT - 1, Z_BOT + HEAD_H)   # counterbore for M3 button head
-    return base
+    # Wall fillers under the shield ports (they close the lid notches below each window)
+    wins = port_windows(PORTS_PLUS_Y)
+    fill = None
+    for w in wins:
+        b = box(w[0], w[1], Y_IN[1] - FIT, Y_OUT[1], Z_BOT, w[2])
+        fill = b if fill is None else fill + b
+    span = box(min(w[0] for w in wins) + FIT, max(w[1] for w in wins) - FIT, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, Z_TOP)
+    # microSD card passes through a window in the filler (a notch would leave a cantilever)
+    x0, x1, z0, z1 = MICROSD
+    sd = box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 2, Y_OUT[1] + 1, z0 - 1.5, z1 + 1.5)
+    return base + ((fill & span) - sd)
 
 
 if __name__ == "__main__":

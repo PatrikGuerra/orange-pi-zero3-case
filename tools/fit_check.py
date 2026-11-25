@@ -21,6 +21,9 @@ for label, shape in official_board.board_and_shield().items():
 print(f"outer {case.X_OUT[1] - case.X_OUT[0]:.1f} x {case.Y_OUT[1] - case.Y_OUT[0]:.1f} x {case.HEIGHT:.1f} mm")
 assert bad == 0, f"{bad} overlaps"
 
+common = parts["lid"] & parts["base"]
+assert common is None or common.volume < 0.01, f"base and lid overlap: {common.volume:.2f} mm3"
+
 # Ports: every port of the official board ends inside the case and faces its window
 ports = official_board.load()
 for label, key in (("03_11_13_0003_HDMI0001", "micro_hdmi"), ("TYPE_C_CC", "usb_c"),
@@ -31,6 +34,11 @@ for label, key in (("03_11_13_0003_HDMI0001", "micro_hdmi"), ("TYPE_C_CC", "usb_
     assert x0 <= b.min.X + tol and b.max.X <= x1 + tol and z0 <= b.min.Z + tol and b.max.Z <= z1 + tol, \
         f"{key} window does not cover the official part"
     assert b.min.Y > case.Y_IN[0], f"{key} sticks into the wall"
+
+# Shield ports end near the outside face (flush look), not deep inside the case
+recess = case.Y_OUT[1] - 26.80
+assert 0 <= recess <= 0.5, f"shield ports sit {recess:.2f} mm behind the outside face"
+print(f"shield ports {recess:.2f} mm behind the outside face")
 
 # Fan: nuts clear the plate and the roof, and the fan stays inside the case outline
 low, high = case.FAN_ZC - case.FAN_HOLE_PITCH / 2, case.FAN_ZC + case.FAN_HOLE_PITCH / 2
