@@ -23,6 +23,11 @@ BOARD_HOLES = [(29.41, -23.73), (29.41, 21.33), (-20.53, 21.33), (-20.53, -23.73
 SHIELD_DZ = 0.1
 SHIELD_TOP_Z = 19.32 + SHIELD_DZ
 SHIELD_HOLES = [(-4.31, -5.60), (23.72, 16.70)]                                      # d = 3.0
+SHIELD_PCB = 1.4
+SHIELD_POST_D = 7.0
+SHIELD_SCREW_PASS = 3.2            # snug M3 pass-through, keeps the shield aligned
+SHIELD_KEEPOUT = (20.43, 25.77, 19.31, 24.65, 21.32 + SHIELD_DZ)  # x0, x1, y0, y1, z1 of a part beside post 2
+NUT_H, NUT_D = 2.4, 6.4            # M3 nut, across corners
 TALLEST_Z = 35.01 + SHIELD_DZ      # stacked USB on the shield
 # Port bounding boxes (x0, x1, z0, z1). -Y: main board edge (official). +Y: shield edge.
 PORTS_MINUS_Y = {
@@ -167,8 +172,14 @@ def make_lid():
         lid += box(min(x, xw), max(x, xw), min(y, yw), max(y, yw), PLATE_TOP_Z, ROOF_IN)
         lid += cyl_z(x, y, BOSS_D, PLATE_TOP_Z, ROOF_IN)
         lid -= cyl_z(x, y, SCREW_TAP, PLATE_TOP_Z - 1, PLATE_TOP_Z + 10)
+    # Shield posts: the shield is screwed to the lid (M3 x 25 from the top, nut under the
+    # shield), so lid + shield go on together and the shield plugs onto the 13-pin header.
+    keep = box(SHIELD_KEEPOUT[0] - 0.3, SHIELD_KEEPOUT[1] + 0.3, SHIELD_KEEPOUT[2] - 0.3,
+               SHIELD_KEEPOUT[3] + 0.3, SHIELD_TOP_Z, SHIELD_KEEPOUT[4] + 0.3)
     for x, y in SHIELD_HOLES:
-        lid += cyl_z(x, y, 5.0, SHIELD_TOP_Z + 0.3, ROOF_IN)
+        lid += cyl_z(x, y, SHIELD_POST_D, SHIELD_TOP_Z + 0.05, ROOF_IN) - keep   # 0.05: model rounding
+        lid -= cyl_z(x, y, SHIELD_SCREW_PASS, SHIELD_TOP_Z - 1, Z_TOP + 1)
+        lid -= cyl_z(x, y, HEAD_D, Z_TOP - HEAD_H, Z_TOP + 1)          # head recess in the roof
     return lid
 
 

@@ -9,8 +9,9 @@ import case  # noqa: E402
 import official_board  # noqa: E402
 
 parts = {"lid": case.make_lid(), "base": case.make_base()}
+board = official_board.board_and_shield()
 bad = 0
-for label, shape in official_board.board_and_shield().items():
+for label, shape in board.items():
     for s in shape.solids():
         for name, p in parts.items():
             common = s & p
@@ -23,6 +24,18 @@ assert bad == 0, f"{bad} overlaps"
 
 common = parts["lid"] & parts["base"]
 assert common is None or common.volume < 0.01, f"base and lid overlap: {common.volume:.2f} mm3"
+
+# Shield screws: the nut + screw tip under the shield must not touch the main board or heatsink.
+# M3 x 25 from the roof head recess must reach through the nut.
+under = case.SHIELD_TOP_Z - case.SHIELD_PCB
+for x, y in case.SHIELD_HOLES:
+    nut = case.cyl_z(x, y, case.NUT_D, under - case.NUT_H - 1.0, under)
+    for label in ("PCB-Z3", "heatsink", "RJ45", "_USB_ASM_3_ASM", "TYPE_C_CC"):
+        c = board[label] & nut
+        assert c is None or c.volume < 0.01, f"shield nut at ({x}, {y}) hits {label}"
+    grip = (case.Z_TOP - case.HEAD_H) - (under - case.NUT_H)
+    assert grip <= 25.0 - 0.5, f"M3 x 25 too short for the shield screw: needs {grip:.1f} mm"
+    print(f"shield screw at ({x}, {y}): M3 x 25, {25.0 - grip:.1f} mm past the nut")
 
 # Ports: every port of the official board ends inside the case and faces its window
 ports = official_board.load()
