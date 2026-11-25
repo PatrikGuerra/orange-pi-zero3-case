@@ -56,12 +56,12 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 - Saída de ar: frestas na parede +X, na altura entre a placa e a placa USB.
 - Antena: trilhos por fora da parede +X, acima das frestas, com fenda para o cabo.
 - Fixação: 4 parafusos M3 x 10 por baixo, entrando nas colunas da tampa. Placa: 4 M3 x 6 nos pinos da base.
-- 2 colunas no teto prendem a placa USB com 2 parafusos M3 x 25 (cabeça no teto, porca embaixo da placa USB).
+- 2 colunas no teto prendem a placa USB com 2 parafusos M3 x 5, por baixo da placa USB, direto na coluna. O teto fica fechado.
 
 ### Montagem
 
 1. Parafuse a placa na base (4 x M3 x 6).
-2. Vire a tampa de cabeça para baixo. Encoste a placa USB nas 2 colunas e prenda com 2 x M3 x 25 + porca.
+2. Vire a tampa de cabeça para baixo. Encoste a placa USB nas 2 colunas e prenda com 2 x M3 x 5.
 3. Desça a tampa com a placa USB sobre a placa. O conector da placa USB encaixa no header de 13 pinos.
 4. Prenda a base na tampa por baixo (4 x M3 x 10).
 5. Prenda a ventoinha por fora (4 x M3 x 16 + porca) e ligue nos pinos 5 V e GND.
