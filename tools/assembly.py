@@ -27,5 +27,5 @@ parts = [
 for shape, label, color in parts:
     shape.label, shape.color = label, color
 out = Path(case.__file__).parent / "out" / "assembly.step"
-export_step(Compound([p[0] for p in parts], label="opi_zero3_case_assembly"), str(out))
+export_step(Compound(children=[p[0] for p in parts], label="opi_zero3_case_assembly"), str(out))
 print(out)
