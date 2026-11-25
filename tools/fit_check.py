@@ -1,4 +1,5 @@
 """Self-check: no board part may overlap the lid or the base, and each port must sit in its window."""
+import math
 import sys
 from pathlib import Path
 
@@ -34,6 +35,13 @@ assert case.FAN_ZC - case.FAN / 2 >= case.Z_BOT and case.FAN_ZC + case.FAN / 2 <
 for x, y in case.BOSSES:
     edge = min(x - case.X_IN[0], case.X_IN[1] - x, y - case.Y_IN[0], case.Y_IN[1] - y) - case.FIT
     assert edge - case.HEAD_D / 2 >= 1.0 - 1e-6, f"screw head too close to the wall at ({x:.1f}, {y:.1f})"
+
+# Fan grille: enough open area, and cells big enough for a 2-pin Dupont plug (5.1 x 2.5 mm)
+g = case.fan_grille(case.X_OUT[0] - 1, 4.0)
+open_ratio = g.volume / 4.0 / (math.pi * (case.GRILLE_D / 2) ** 2)
+assert open_ratio >= 0.55, f"fan grille only {open_ratio:.0%} open"
+assert case.GRILLE_CELL >= math.hypot(5.1, 2.5), "Dupont plug does not pass a grille cell"
+print(f"fan grille {open_ratio:.0%} open")
 
 # Port walls: a strip thinner than MIN_RIB between two windows must be cut away
 for ports in (case.PORTS_MINUS_Y, case.PORTS_PLUS_Y):

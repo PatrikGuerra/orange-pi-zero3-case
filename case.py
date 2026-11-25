@@ -7,8 +7,10 @@ Two parts:
 Coordinates are the ones of the reference STEP (reference/motorbottle-case.stp), mm.
 Run: .venv/Scripts/python case.py  ->  out/lid.stl, out/base.stl, out/case.step
 """
+import math
 from pathlib import Path
-from build123d import Align, Box, Cylinder, Pos, Rot, export_step, export_stl, Compound
+from build123d import (Align, Axis, Box, Compound, Cylinder, Plane, Pos, RegularPolygon, Rot, Sketch,
+                       export_step, export_stl, extrude, fillet)
 
 # --- Board geometry, read from the reference STEP (tools/inspect_step.py, tools/find_holes.py) ---
 PCB_X = (-23.06, 31.94)            # main board 55 x 50.2 x 1.2
@@ -47,6 +49,9 @@ MIN_RIB = 2.0                      # thinner wall strips between windows are cut
 NUT_R = 3.3                        # M3 nut corner radius + margin
 FAN = 40.0                         # 4010 fan
 FAN_HOLE_PITCH = 32.0
+GRILLE_D = 38.0                    # fan opening
+GRILLE_CELL, GRILLE_RIB = 6.0, 1.4 # hexagon flat-to-flat width, wall between cells
+CORNER_R = 3.0                     # outside vertical corners of the lid
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
 ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
@@ -90,8 +95,26 @@ def port_windows(ports):
     return wins + gaps
 
 
+def fan_grille(x0, depth):
+    """Hexagon cells inside the fan circle, as one solid to cut from the -X wall."""
+    r = GRILLE_CELL / math.sqrt(3)                 # circumradius from flat-to-flat width
+    pitch_y = GRILLE_CELL + GRILLE_RIB
+    pitch_z = pitch_y * math.sqrt(3) / 2
+    plane = Plane.YZ.offset(x0)                    # local (x, y) = global (Y, Z)
+    cells = []
+    for row in range(-10, 11):
+        shift = pitch_y / 2 if row % 2 else 0.0
+        for col in range(-10, 11):
+            y, z = col * pitch_y + shift, row * pitch_z
+            if math.hypot(y, z) < GRILLE_D / 2 + r / 2:
+                cells.append(plane * Pos(YC + y, FAN_ZC + z) * RegularPolygon(r, 6, rotation=30))
+    # edge cells are cut back to the fan circle
+    return extrude(Sketch() + cells, amount=depth) & cyl_x(x0, x0 + depth, YC, FAN_ZC, GRILLE_D)
+
+
 def make_lid():
-    lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
+    lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
+    lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
     for w in port_windows(PORTS_MINUS_Y):
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
     for w in port_windows(PORTS_PLUS_Y):
@@ -100,10 +123,10 @@ def make_lid():
     x0, x1, _, z1 = MICROSD
     lid -= box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
 
-    # -X wall: fan intake. Open circle with 2 ribs that keep the cable off the blades.
+    # -X wall: fan intake. Honeycomb of point-up hexagons: prints on a vertical wall
+    # without supports, and a 2-pin Dupont plug (5.1 x 2.5) passes through any cell.
     wall = (X_OUT[0] - 1, X_IN[0] + 1)
-    lid -= cyl_x(*wall, YC, FAN_ZC, 38.0) - box(*wall, YC - 7, YC - 5.4, Z_BOT, Z_TOP) \
-        - box(*wall, YC + 5.4, YC + 7, Z_BOT, Z_TOP)
+    lid -= fan_grille(wall[0], wall[1] - wall[0])
     for dy in (-1, 1):
         for dz in (-1, 1):
             lid -= cyl_x(*wall, YC + dy * FAN_HOLE_PITCH / 2, FAN_ZC + dz * FAN_HOLE_PITCH / 2, SCREW_PASS)
