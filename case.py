@@ -9,7 +9,7 @@ Run: .venv/Scripts/python case.py  ->  out/lid.stl, out/base.stl, out/case.step
 """
 import math
 from pathlib import Path
-from build123d import (Align, Axis, Box, Compound, Cylinder, Plane, Pos, RegularPolygon, Rot, Sketch,
+from build123d import (Align, Axis, Box, Compound, Cone, Cylinder, Plane, Pos, RegularPolygon, Rot, Sketch,
                        export_step, export_stl, extrude, fillet)
 
 # --- Board geometry ---
@@ -58,6 +58,9 @@ HEAD_D, HEAD_H = 6.5, 1.8          # counterbore for an M3 button head (5.7 x 1.
 # Towers from the roof down to the board holes. 4 x M3 x 16 from below go through the base
 # standoffs and the board into the towers, so the same 4 screws hold base + board.
 TOWER_D = [6.0, 5.0, 6.0, 6.0]     # per BOARD_HOLES; hole 2 sits in the shield's corner notch
+TOWER_RIB = 2.0                    # ribs from each tower to its 2 nearest walls
+TOWER_RIB_Z0 = 9.0                 # ribs start above the parts on the board (top at 8.45)
+TOWER_FLARE = 3.0                  # cone where each tower meets the roof
 BOARD_SCREW_L = 16.0
 STANDOFF_D = 6.0
 PORT_CLEAR = 1.0                   # margin around each main board port window
@@ -200,8 +203,17 @@ def make_lid():
     bite = BOARD_SCREW_L - (PCB_TOP_Z - Z_BOT)
     for (x, y), d in zip(BOARD_HOLES, TOWER_D):
         tower = cyl_z(x, y, d, PCB_TOP_Z, ROOF_IN)
-        if X_IN[1] - (x + d / 2) < 1.0:   # almost touching the +X wall: join them
-            tower += box(x, X_IN[1], y - d / 3, y + d / 3, PCB_TOP_Z, ROOF_IN)
+        # Ribs to the nearest X and Y walls, above the parts on the board
+        xw = X_IN[0] if x < 0 else X_IN[1]
+        yw = Y_IN[0] if y < 0 else Y_IN[1]
+        h = TOWER_RIB / 2
+        tower += box(min(x, xw), max(x, xw), y - h, y + h, TOWER_RIB_Z0, ROOF_IN)
+        tower += box(x - h, x + h, min(y, yw), max(y, yw), TOWER_RIB_Z0, ROOF_IN)
+        # Flare where the tower meets the roof
+        tower += Pos(x, y, ROOF_IN - TOWER_FLARE) * Cone(d / 2, d / 2 + TOWER_FLARE, TOWER_FLARE,
+                                                       align=(Align.CENTER, Align.CENTER, Align.MIN))
+        tower -= box(X_IN[0], X_IN[0] + FAN_T + 2 * FAN_GAP, YC - FAN / 2 - FAN_GAP, YC + FAN / 2 + FAN_GAP,
+                     PLATE_TOP_Z, ROOF_IN)   # keep the fan's space clear
         for x0, x1, _, z1 in PORT_BODIES_MINUS_Y.values():
             tower -= box(x0 - 0.3, x1 + 0.3, Y_IN[0] - 1, 0, PCB_TOP_Z - 1, z1 + 0.3)
         lid += tower

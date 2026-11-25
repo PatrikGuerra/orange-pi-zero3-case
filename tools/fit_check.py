@@ -89,6 +89,15 @@ bite = case.BOARD_SCREW_L - (case.PCB_TOP_Z - case.Z_BOT)
 assert bite >= 6.0, f"M3 x {case.BOARD_SCREW_L:g} bites only {bite:.1f} mm into the towers"
 print(f"board screws: M3 x {case.BOARD_SCREW_L:g}, {bite:.1f} mm into the towers")
 
+# Tower ribs: each tower is tied to its 2 nearest walls (a probe at mid-rib hits the lid)
+for x, y in case.BOARD_HOLES:
+    xw = case.X_IN[0] if x < 0 else case.X_IN[1]
+    yw = case.Y_IN[0] if y < 0 else case.Y_IN[1]
+    zm = (case.TOWER_RIB_Z0 + case.ROOF_IN) / 2
+    for px, py in (((x + xw) / 2, y), (x, (y + yw) / 2)):
+        c = parts["lid"] & case.box(px - 0.2, px + 0.2, py - 0.2, py + 0.2, zm - 0.2, zm + 0.2)
+        assert c is not None and c.volume > 0.05, f"tower at ({x}, {y}) has no rib at ({px:.1f}, {py:.1f})"
+
 # Fan grille: enough open area, and cells big enough for a 2-pin Dupont plug (5.1 x 2.5 mm)
 g = case.fan_grille(case.X_OUT[0] - 1, 4.0)
 open_ratio = g.volume / 4.0 / (math.pi * (case.GRILLE_D / 2) ** 2)
