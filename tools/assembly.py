@@ -4,27 +4,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build123d import Align, Box, Color, Compound, Cylinder, Pos, Rot, export_step  # noqa: E402
+from build123d import Color, Compound, export_step  # noqa: E402
 import case  # noqa: E402
 import official_board  # noqa: E402
 
-UP_X = (Align.CENTER, Align.CENTER, Align.MIN)
-
 
 def fan_4010():
-    """Simple 4010 fan: frame with a 38 mm bore, hub, 4 screw holes. Mounted on the outside of the -X wall."""
-    x0 = case.X_OUT[0] - 10.0
-
-    def along_x(d, y, z):
-        return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(d / 2, 10, align=UP_X)
-
-    frame = Pos(x0 + 5, case.YC, case.FAN_ZC) * Box(10, case.FAN, case.FAN)
-    frame -= along_x(38, case.YC, case.FAN_ZC)
-    p = case.FAN_HOLE_PITCH / 2
-    for dy in (-p, p):
-        for dz in (-p, p):
-            frame -= along_x(3.4, case.YC + dy, case.FAN_ZC + dz)
-    return frame + along_x(16, case.YC, case.FAN_ZC)
+    return case.make_fan()
 
 
 board = official_board.board_and_shield()

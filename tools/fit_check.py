@@ -53,11 +53,14 @@ recess = case.Y_OUT[1] - 26.80
 assert 0 <= recess <= 0.5, f"shield ports sit {recess:.2f} mm behind the outside face"
 print(f"shield ports {recess:.2f} mm behind the outside face")
 
-# Fan: nuts clear the plate and the roof, and the fan stays inside the case outline
-low, high = case.FAN_ZC - case.FAN_HOLE_PITCH / 2, case.FAN_ZC + case.FAN_HOLE_PITCH / 2
-assert low - case.NUT_R >= case.PLATE_TOP_Z - 1e-6, "low fan nuts hit the base plate"
-assert high + case.NUT_R <= case.ROOF_IN + 1e-6, "high fan nuts hit the roof"
-assert case.FAN_ZC - case.FAN / 2 >= case.Z_BOT and case.FAN_ZC + case.FAN / 2 <= case.Z_TOP, "fan sticks out"
+# Fan: inside the case, touching neither the lid, the base nor any board part
+fan = case.make_fan()
+for name, p in [("lid", parts["lid"]), ("base", parts["base"])] + list(board.items()):
+    c = fan & p
+    assert c is None or c.volume < 0.01, f"fan hits {name}: {c.volume:.2f} mm3"
+fb = fan.bounding_box()
+assert case.X_IN[0] <= fb.min.X and fb.max.X <= case.PCB_X[0], "fan is not between the -X wall and the board"
+assert case.PLATE_TOP_Z <= fb.min.Z and fb.max.Z <= case.ROOF_IN, "fan does not fit in height"
 
 # Bosses: the screw head counterbore keeps >= 1 mm of plate to the plate edge
 for x, y in case.BOSSES:
