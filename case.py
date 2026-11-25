@@ -1,4 +1,4 @@
-"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 side fan, outside Wi-Fi antenna.
+"""Orange Pi Zero 3 + USB expansion board desk case, PETG, 4010 fan, Wi-Fi antenna flat on the roof.
 
 Two parts:
 - lid: 5-sided box (walls + roof), printed roof down.
@@ -76,7 +76,12 @@ GRILLE_CELL, GRILLE_RIB = 6.0, 1.4 # hexagon flat-to-flat width, wall between ce
 CORNER_R = 3.0                     # outside vertical corners of the lid
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
-ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna; check with calipers
+ANT_L, ANT_W = 45.0, 10.0          # stock FPC antenna (guess, check with calipers)
+ANT_CLEAR = 0.5                    # pocket margin around the antenna
+ANT_POCKET = 0.8                   # pocket depth in the 2 mm roof
+ANT_HOLE_D = 4.0                   # cable hole; the IPEX plug (about 2.5 mm) passes
+ANT_HOLE = (-11.0, 22.5)           # past the shield's -X edge (-7.3), above the 3-pin header
+ANT_IPEX = (8.5, 21.4)             # ANT1 connector on the main board (official TOP DXF)
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
 BAY_DEPTH = FAN_T + FAN_GAP
@@ -159,6 +164,14 @@ def microsd_notch():
     return box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
 
 
+def antenna_pocket():
+    """Pocket in the roof top for the flat antenna, starting just -X of the cable hole."""
+    hx, _ = ANT_HOLE
+    x0 = hx - ANT_HOLE_D / 2 - 1.0
+    y1 = Y_OUT[1] - 2.5
+    return box(x0, x0 + ANT_L + 2 * ANT_CLEAR, y1 - ANT_W - 2 * ANT_CLEAR, y1, Z_TOP - ANT_POCKET, Z_TOP + 1)
+
+
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
     lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
@@ -184,21 +197,19 @@ def make_lid():
         for dz in (-p, p):
             lid -= cyl_x(*wall, YC + dy, FAN_ZC + dz, SCREW_PASS)
 
-    # +X wall: exhaust slots low (air between board and shield), antenna holder high
+    # +X wall: exhaust slots low (air between board and shield)
     wall = (X_IN[1] - 1, X_OUT[1] + 1)
     y = -20.0
     while y + 2.5 <= 20.0:
         lid -= box(*wall, y, y + 2.5, PLATE_TOP_Z + 2, 21.0)
         y += 4.5
-    ant_z0 = 25.0
-    ant_y0 = YC - ANT_L / 2 - 0.5
-    ant_y1 = YC + ANT_L / 2 + 0.5
-    rail = 1.2
-    for z0 in (ant_z0 - rail, ant_z0 + ANT_W + 0.5):           # top and bottom rails
-        lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y0 - rail, ant_y1 + rail, z0, z0 + rail)
-    lid += box(X_OUT[1], X_OUT[1] + 1.5, ant_y1, ant_y1 + rail, ant_z0, ant_z0 + ANT_W + 0.5)  # end stop
-    lid -= box(*wall, ant_y0 + 10, ant_y0 + 16, ant_z0 + 2, ant_z0 + 5)   # cable slot
 
+    # Antenna: flat pocket on the roof (the FPC sticks in with its own tape), and a hole
+    # at its -X end for the cable. Inside, the cable runs from the IPEX connector
+    # between the boards to x < shield edge, then straight up to the hole.
+    lid -= antenna_pocket()
+    hx, hy = ANT_HOLE
+    lid -= cyl_z(hx, hy, ANT_HOLE_D, ROOF_IN - 1, Z_TOP + 1)
     # Towers from the roof down to the board top at its 4 holes, cut flat where a
     # -Y port (HDMI, RJ45) comes within reach. The base screws thread into them.
     bite = BOARD_SCREW_L - (PCB_TOP_Z - Z_BOT)

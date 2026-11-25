@@ -55,17 +55,18 @@ O STEP da MotorBottle está em `reference/motorbottle-case.stp`. Ele traz a plac
 - **Base**: placa de 3,5 mm que encaixa por dentro da tampa. Imprimir deitada.
 - Ventoinha 4010 dentro, encostada na parede -X (lado do GPIO), presa por fora com 4 x M3 x 10 que roscam nos furos da ventoinha. Grade em colmeia na parede.
 - Saída de ar: frestas na parede +X, na altura entre a placa e a placa USB.
-- Antena: trilhos por fora da parede +X, acima das frestas, com fenda para o cabo.
+- Antena: deitada num rebaixo de 0,8 mm no teto (46 x 11 mm), presa pela fita dela. O cabo sai por um furo de 4 mm no canto do rebaixo. Por dentro, ele vai do conector ANT1 da placa (perto da borda da placa USB), passa entre as placas e sobe até o furo, ao lado da placa USB.
 - Fixação: 4 torres descem do teto até os furos da placa. 4 x M3 x 16 por baixo passam pela base e pela placa e roscam nas torres (7,2 mm de rosca). Os mesmos 4 parafusos prendem base + placa. Use pés de borracha de 2 mm ou mais, porque as cabeças ficam para fora.
 - 2 colunas no teto prendem a placa USB com 2 parafusos M3 x 5, por baixo da placa USB, direto na coluna. O teto fica fechado.
 
 ### Montagem
 
 1. Parafuse a ventoinha por fora da parede -X (4 x M3 x 10).
-2. Vire a tampa de cabeça para baixo. Coloque a placa USB inclinada, com as portas entrando nas janelas (a parede de PETG cede um pouco). Encoste nas 2 colunas e prenda com 2 x M3 x 5.
-3. Ligue o cabo da ventoinha nos pinos 5 V e GND da placa.
-4. Encaixe a placa de cabeça para baixo nas 4 torres, inclinada, com as portas entrando nas janelas primeiro. O header de 13 pinos entra no conector da placa USB.
-5. Ponha a base por cima e prenda tudo com 4 x M3 x 16.
+2. Passe o conector IPEX da antena pelo furo do teto, de fora para dentro. Cole a antena no rebaixo.
+3. Vire a tampa de cabeça para baixo. Coloque a placa USB inclinada, com as portas entrando nas janelas (a parede de PETG cede um pouco). Encoste nas 2 colunas e prenda com 2 x M3 x 5.
+4. Ligue o cabo da ventoinha nos pinos 5 V e GND da placa. Ligue a antena no conector ANT1 da placa.
+5. Encaixe a placa de cabeça para baixo nas 4 torres, inclinada, com as portas entrando nas janelas primeiro. O header de 13 pinos entra no conector da placa USB. Passe o cabo da antena entre as placas, pelo lado da placa USB perto do header de 3 pinos.
+6. Ponha a base por cima e prenda tudo com 4 x M3 x 16.
 - Dissipador: o limite é o vão entre as placas, cerca de 10 mm. O case não muda isso.
 - Saídas: `out/lid.stl`, `out/base.stl`, `out/case.step`.
 - Checagem: `tools/fit_check.py` cruza o case com o STEP e falha se alguma peça encostar.

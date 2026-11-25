@@ -94,6 +94,21 @@ bite = case.BOARD_SCREW_L - (case.PCB_TOP_Z - case.Z_BOT)
 assert bite >= 6.0, f"M3 x {case.BOARD_SCREW_L:g} bites only {bite:.1f} mm into the towers"
 print(f"board screws: M3 x {case.BOARD_SCREW_L:g}, {bite:.1f} mm into the towers")
 
+# Antenna: pocket inside the roof outline, roof left under it, cable path clear.
+pocket = case.antenna_pocket().bounding_box()
+assert case.X_OUT[0] + 1 <= pocket.min.X and pocket.max.X <= case.X_OUT[1] - 1, "antenna pocket runs off the roof"
+assert case.Y_OUT[0] + 1 <= pocket.min.Y and pocket.max.Y <= case.Y_OUT[1] - 1, "antenna pocket runs off the roof"
+assert case.ROOF - case.ANT_POCKET >= 1.0, "roof under the antenna pocket is thinner than 1 mm"
+hx, hy = case.ANT_HOLE
+assert pocket.min.X < hx < pocket.max.X and pocket.min.Y < hy < pocket.max.Y, "cable hole is not in the pocket"
+riser = case.cyl_z(hx, hy, case.ANT_HOLE_D, 16.0, case.ROOF_IN)   # above the 3-pin header (15.15)
+for name, p in [("lid", parts["lid"])] + list(board.items()):
+    c = riser & p
+    assert c is None or c.volume < 0.01, f"antenna cable path hits {name}"
+ix, iy = case.ANT_IPEX
+cable = abs(ix - hx) + abs(iy - hy) + (case.ROOF_IN - case.PCB_TOP_Z) + case.ROOF
+print(f"antenna: pocket {pocket.size.X:.1f} x {pocket.size.Y:.1f} mm, cable inside about {cable:.0f} mm")
+
 # Tower ribs: each tower is tied to its 2 nearest walls (a probe at mid-rib hits the lid)
 for x, y in case.BOARD_HOLES:
     xw = case.X_IN[0] if x < 0 else case.X_IN[1]
