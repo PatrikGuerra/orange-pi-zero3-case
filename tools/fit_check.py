@@ -95,24 +95,33 @@ bite = case.BOARD_SCREW_L - (case.PCB_TOP_Z - case.Z_BOT)
 assert bite >= 6.0, f"M3 x {case.BOARD_SCREW_L:g} bites only {bite:.1f} mm into the towers"
 print(f"board screws: M3 x {case.BOARD_SCREW_L:g}, {bite:.1f} mm into the towers")
 
-# Antenna clips: on the wall, mouth narrow enough to snap, antenna clear of the case
+# Antenna on the +Y face: tie holes and the cable hole clear of the other openings,
+# each tie's inside loop clear of the boards, antenna clear of the case
 ay, az = case.antenna_axis()
-h = case.CH_R + case.CRADLE_MARGIN
-cr = case.antenna_cradle().bounding_box()
-assert case.X_OUT[0] + case.CORNER_R <= cr.min.X and cr.max.X <= case.X_OUT[1] - case.CORNER_R, "cradle runs past the wall"
+w, hh = case.TIE_HOLE
+holes = case.tie_holes()
 sd_top = case.MICROSD[3] + 1.5
-usb_bottom = min(w[2] for w in case.port_windows(case.PORTS_PLUS_Y, case.SHIELD_PORT_CLEAR))
+sd_x = (case.MICROSD[0] - 1.5, case.MICROSD[1] + 1.5)
+usb_bottom = min(w_[2] for w_ in case.port_windows(case.PORTS_PLUS_Y, case.SHIELD_PORT_CLEAR))
+audio = case.PORTS_PLUS_Y["audio"]
+audio_r = max(audio[1] - audio[0], audio[3] - audio[2]) / 2 + case.SHIELD_PORT_CLEAR
 hx, hz = case.ANT_HOLE
-assert sd_top <= az - h, "cradle covers the microSD notch"
-assert az + h <= hz - case.ANT_HOLE_D / 2, "cradle covers the cable hole"
-assert hz + case.ANT_HOLE_D / 2 <= usb_bottom, "cable hole runs into the USB window"
-assert case.CRADLE_FLOOR >= 0.8 and case.TIE_BRIDGE >= 0.8, "cradle plastic too thin"
-# Zip-tie tunnels run open from the bottom to the top of the cradle
-t0 = case.Y_OUT[1] + case.TIE_BRIDGE
-for xt in (case.XC - case.TIE_OFFSET, case.XC + case.TIE_OFFSET):
-    probe = case.box(xt - 1, xt + 1, t0 + 0.2, t0 + case.TIE_T - 0.2, az - h - 0.5, az + h + 0.5)
+for x, z in holes:
+    assert not (sd_x[0] < x + w / 2 and x - w / 2 < sd_x[1] and z - hh / 2 < sd_top), f"tie hole at x={x} hits the microSD notch"
+    assert z + hh / 2 <= usb_bottom, f"tie hole at x={x} runs into the USB window"
+    d = math.hypot(x - (audio[0] + audio[1]) / 2, z - (audio[2] + audio[3]) / 2)
+    assert d > audio_r + hh, f"tie hole at x={x} is too close to the audio jack"
+    assert abs(x - hx) >= w / 2 + case.ANT_HOLE_D / 2 + 1.0, f"tie hole at x={x} is too close to the cable hole"
+    probe = case.box(x - 0.5, x + 0.5, case.Y_IN[1] - 1, case.Y_OUT[1] + 1, z - 0.3, z + 0.3)
     c = probe & parts["lid"]
-    assert c is None or c.volume < 0.01, f"zip-tie tunnel at x={xt:.1f} is blocked"
+    assert c is None or c.volume < 0.01, f"tie hole at ({x}, {z:.1f}) is blocked"
+for x in case.TIE_X:   # inside, the tie runs up the wall from one hole to the other
+    zs = [z for x_, z in holes if x_ == x]
+    loop = case.box(x - w / 2, x + w / 2, case.Y_IN[1] - 1.2, case.Y_IN[1] - 0.01, min(zs) - hh / 2, max(zs) + hh / 2)
+    for name, p in [("lid", parts["lid"])] + list(board.items()):
+        c = loop & p
+        assert c is None or c.volume < 0.01, f"zip tie at x={x} hits {name} inside"
+assert hz + case.ANT_HOLE_D / 2 <= usb_bottom, "cable hole runs into the USB window"
 c = case.make_antenna() & parts["lid"]
 assert c is None or c.volume < 0.01, f"antenna hits the lid: {c.volume:.2f} mm3"
 # Cable hole: clear of the board and the shield, from the shield edge to the wall
@@ -122,8 +131,8 @@ hole = Pos(hx, y0, hz) * Rot(-90, 0, 0) * Cylinder(case.ANT_HOLE_D / 2, case.Y_I
 for name, p in [("lid", parts["lid"])] + list(board.items()):
     c = hole & p
     assert c is None or c.volume < 0.01, f"antenna cable path hits {name}"
-print(f"antenna: {case.ANT_D:g} mm whip on the +Y face at z {az:.1f}, cradle {cr.size.X:.0f} mm, "
-      f"2 zip ties {2 * case.TIE_OFFSET:.0f} mm apart, cable hole at z {hz:.1f}")
+print(f"antenna: {case.ANT_D:g} mm whip on the +Y face at z {az:.1f}, 2 zip ties at x {case.TIE_X}, "
+      f"4 holes {w} x {hh} mm, cable hole at z {hz:.1f}")
 
 # Tower ribs: each tower is tied to its 2 nearest walls (a probe at mid-rib hits the lid)
 for x, y in case.BOARD_HOLES:

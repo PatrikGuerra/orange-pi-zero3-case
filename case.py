@@ -77,18 +77,14 @@ CORNER_R = 3.0                     # outside vertical corners of the lid
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
 ANT_D, ANT_L = 5.0, 60.0           # round whip antenna (guess, check with calipers)
-# Option B: cradle on the +Y face (shield USB side), below the USB window, with 2 tunnels
-# behind the channel for zip ties that wrap the antenna.
-ANT_Z = 10.0                       # antenna axis height: over the microSD notch (5.8), under the cable hole
-CH_R = ANT_D / 2 + 0.2             # channel radius
-CRADLE_FLOOR = 1.0                 # plastic between the tunnels and the channel
-TIE_W, TIE_T = 3.5, 1.4            # tunnel for a zip tie up to 3 mm wide, 1.2 mm thick
-TIE_BRIDGE = 0.8                   # plastic between the wall face and the tunnels
-CRADLE_MARGIN = 1.0                # cradle height over the channel, up and down
-CRADLE_L = ANT_L - 4.0
-TIE_OFFSET = 18.0                  # tunnels at the cradle center +- this
+# Option B, simple: the antenna lies on the +Y face (shield USB side), below the USB window.
+# 2 zip ties (Hellermann), each through a pair of holes, one above and one below the antenna.
+ANT_Z = 11.5                       # antenna axis height
+TIE_HOLE = (3.4, 1.8)              # hole width (x) and height (z): zip ties up to 3 x 1.2 mm
+TIE_GAP = 0.9                      # plastic between each hole and the antenna
+TIE_X = (-14.0, 15.0)              # clear of the microSD notch, the audio jack and the cable hole
 ANT_HOLE_D = 3.2                   # cable hole; the IPEX plug (about 2 mm) passes
-# (x, z) in the +Y wall: between the shield USB (x < 8.6) and the audio jack, over the cradle
+# (x, z) in the +Y wall: between the shield USB (x < 8.6) and the audio jack, over the antenna
 ANT_HOLE = (10.5, 15.6)
 
 # -X: room for the fan + play, kept 0.3 mm off the board edge and the base standoffs (d 6).
@@ -174,25 +170,18 @@ def microsd_notch():
 
 
 def antenna_axis():
-    """(y, z) of the antenna axis: outside the +Y wall, half sunk in the cradle channel."""
-    return Y_OUT[1] + TIE_BRIDGE + TIE_T + CRADLE_FLOOR + CH_R, ANT_Z
+    """(y, z) of the antenna axis: resting on the +Y outside face."""
+    return Y_OUT[1] + ANT_D / 2 + 0.05, ANT_Z
 
 
 def cyl_along_x(x0, length, y, z, r):
     return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(r, length, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
 
-def antenna_cradle():
-    """Block on the +Y wall with a half-round channel and 2 vertical zip-tie tunnels."""
-    y, z = antenna_axis()
-    x0, x1 = XC - CRADLE_L / 2, XC + CRADLE_L / 2
-    h = CH_R + CRADLE_MARGIN
-    cradle = box(x0, x1, Y_OUT[1] - 0.2, y, z - h, z + h)
-    cradle -= cyl_along_x(x0 - 1, CRADLE_L + 2, y, z, CH_R)
-    t0 = Y_OUT[1] + TIE_BRIDGE
-    for xt in (XC - TIE_OFFSET, XC + TIE_OFFSET):
-        cradle -= box(xt - TIE_W / 2, xt + TIE_W / 2, t0, t0 + TIE_T, z - h - 1, z + h + 1)
-    return cradle
+def tie_holes():
+    """[(x, z)] of the 4 zip-tie holes: one pair (above, below the antenna) per tie."""
+    dz = ANT_D / 2 + TIE_GAP + TIE_HOLE[1] / 2
+    return [(x, ANT_Z + s * dz) for x in TIE_X for s in (-1, 1)]
 
 
 def make_antenna():
@@ -233,8 +222,10 @@ def make_lid():
         lid -= box(*wall, y, y + 2.5, PLATE_TOP_Z + 2, 21.0)
         y += 4.5
     # Antenna (option B): round whip lying along X on the +Y face, below the shield USB,
-    # in a cradle with 2 zip ties. Its cable leaves through a hole just above the cradle.
-    lid += antenna_cradle()
+    # held by 2 zip ties through 4 holes. Its cable goes in through a hole just above it.
+    w, h = TIE_HOLE
+    for x, z in tie_holes():
+        lid -= box(x - w / 2, x + w / 2, Y_IN[1] - 1, Y_OUT[1] + 1, z - h / 2, z + h / 2)
     hx, hz = ANT_HOLE
     lid -= Pos(hx, Y_IN[1] - 0.5, hz) * Rot(-90, 0, 0) * Cylinder(ANT_HOLE_D / 2, WALL + 1,
                                                                  align=(Align.CENTER, Align.CENTER, Align.MIN))
