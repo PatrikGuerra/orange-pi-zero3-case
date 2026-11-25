@@ -72,8 +72,8 @@ assert case.GRILLE_CELL >= math.hypot(5.1, 2.5), "Dupont plug does not pass a gr
 print(f"fan grille {open_ratio:.0%} open")
 
 # Port walls: a strip thinner than MIN_RIB between two windows must be cut away
-for ports in (case.PORTS_MINUS_Y, case.PORTS_PLUS_Y):
-    wins = case.port_windows(ports)
+for ports, clear in ((case.PORTS_MINUS_Y, case.PORT_CLEAR), (case.PORTS_PLUS_Y, case.SHIELD_PORT_CLEAR)):
+    wins = case.port_windows(ports, clear)
     edges = {(w[0], w[1]) for w in wins}
     for a in wins:
         for b in wins:

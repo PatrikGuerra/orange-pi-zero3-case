@@ -36,9 +36,9 @@ PORTS_MINUS_Y = {
     "usb_a": (3.07, 8.77, 3.22, 20.25),
     "rj45": (9.87, 26.31, 3.16, 20.26),
 }
-PORTS_PLUS_Y = {
-    "usb_x2": (-7.01, 8.59, 16.27 + SHIELD_DZ, 35.01 + SHIELD_DZ),
-    "audio": (11.50, 18.50, 19.17 + SHIELD_DZ, 25.17 + SHIELD_DZ),
+PORTS_PLUS_Y = {   # connector faces where they pass the wall (not the whole part)
+    "usb_x2": (-6.76, 8.34, 19.32 + SHIELD_DZ, 34.91 + SHIELD_DZ),
+    "audio": (12.00, 18.00, 19.17 + SHIELD_DZ, 25.17 + SHIELD_DZ),
 }
 MICROSD = (14.41, 25.94, 3.29, 4.29)   # card under the board, sticks out on +Y (socket: official)
 
@@ -53,8 +53,9 @@ BOSS_D = 7.0
 # Boss inset from the inner wall: the counterbore keeps 1 mm of plate to the plate edge.
 BOSS_INSET = FIT + HEAD_D / 2 + 1.0
 SIDE_MARGIN = BOSS_INSET + BOSS_D / 2 + 0.5   # boss stays 0.5 mm off the board edge
-PORT_CLEAR = 1.0                   # extra around each port window
-MIN_RIB = 2.0                      # thinner wall strips between windows are cut away
+PORT_CLEAR = 1.0                   # margin around each main board port window
+SHIELD_PORT_CLEAR = 1.0            # margin around the shield USB and audio windows (1 to 2 mm)
+MIN_RIB = 1.5                      # thinner wall strips between windows are cut away
 NUT_R = 3.3                        # M3 nut corner radius + margin
 FAN = 40.0                         # 4010 fan
 FAN_HOLE_PITCH = 32.0
@@ -97,10 +98,10 @@ def cyl_x(x0, x1, y, z, d):
     return Pos(x0, y, z) * Rot(0, 90, 0) * Cylinder(d / 2, x1 - x0, align=(Align.CENTER, Align.CENTER, Align.MIN))
 
 
-def port_windows(ports):
-    """Port windows (x0, x1, z0, z1) with clearance. A rib thinner than MIN_RIB between two
+def port_windows(ports, c=None):
+    """Port windows (x0, x1, z0, z1) with margin c. A rib thinner than MIN_RIB between two
     neighbours breaks off, so that gap is opened too (over the z range both windows share)."""
-    c = PORT_CLEAR
+    c = PORT_CLEAR if c is None else c
     wins = sorted((x0 - c, x1 + c, z0 - c, z1 + c) for x0, x1, z0, z1 in ports.values())
     gaps = [(a[1], b[0], max(a[2], b[2]), min(a[3], b[3]))
             for a, b in zip(wins, wins[1:]) if 0 < b[0] - a[1] < MIN_RIB]
@@ -136,7 +137,7 @@ def make_lid():
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
     # +Y: the shield ports reach into the wall. The windows stay closed below; the PETG
     # wall flexes out over the ports when the lid goes on.
-    for w in port_windows(PORTS_PLUS_Y):
+    for w in port_windows(PORTS_PLUS_Y, SHIELD_PORT_CLEAR):
         lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, w[2], w[3])
     # microSD: notch open to the bottom edge, so the lid slides down past the card
     lid -= microsd_notch()
