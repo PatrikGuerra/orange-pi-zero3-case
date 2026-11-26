@@ -45,7 +45,7 @@ A ponte de 25 mm é a mais longa. No PETG ela pode cair um pouco, cerca de 0,3 m
 | Parede entre o furo do cabo e a fenda do microSD | 0,6 mm | 1,1 mm (`MICROSD_CLEAR_Z` 1,5 → 1,0) |
 | Borda do teto na mesa | Reta | Chanfro de 0,5 mm (`BED_CHAMFER`) contra o "pé de elefante" |
 | Borda de baixo da base | Reta | Chanfro de 0,5 mm, para a base entrar na tampa |
-| Fenda do microSD, abaixo do cartão | Aberta até a borda de baixo | A base tem um bloco que fecha a fenda. Sobra só a abertura do cartão, 0,4 mm abaixo dele. |
+| Fenda do microSD | Aberta até a borda de baixo | Janela fechada na própria parede, 14,5 x 3 mm. O cartão entra depois da montagem. |
 
 A checagem (`tools/fit_check.py`) agora também falha se:
 

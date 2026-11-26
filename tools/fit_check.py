@@ -25,11 +25,17 @@ assert bad == 0, f"{bad} overlaps"
 
 common = parts["lid"] & parts["base"]
 assert common is None or common.volume < 0.01, f"base and lid overlap: {common.volume:.2f} mm3"
-# microSD notch: the base filler closes it below the card, leaving only the card slot open
-fb_ = case.microsd_filler().bounding_box()
-slot = case.MICROSD[2] - fb_.max.Z
-assert 0 < slot <= 0.5 and fb_.max.Y >= case.Y_OUT[1] - 1e-6, "microSD notch is not closed below the card"
-print(f"microSD notch closed by the base, {slot:.1f} mm under the card")
+# microSD window: closed below by the lid wall itself, card slot open with margin
+x0, x1, z0, z1 = case.MICROSD
+xm = (x0 + x1) / 2
+below = case.box(xm - 1, xm + 1, case.Y_IN[1] + 0.2, case.Y_OUT[1] - 0.2, case.Z_BOT + 0.2, z0 - case.MICROSD_CLEAR_Z - 0.2)
+c = below & parts["lid"]
+assert c is not None and c.volume >= 0.99 * below.volume, "lid wall is not closed below the microSD window"
+card = case.box(x0, x1, case.Y_IN[1] - 0.5, case.Y_OUT[1] + 0.5, z0, z1)
+c = card & parts["lid"]
+assert c is None or c.volume < 0.01, "microSD card does not pass the window"
+print(f"microSD window {x1 - x0 + 2 * case.MICROSD_CLEAR_X:.1f} x {z1 - z0 + 2 * case.MICROSD_CLEAR_Z:.1f} mm, "
+      f"wall closed below")
 
 # Shield screws: M3 x 5 from under the shield into the post. The head must not touch the
 # main board or heatsink, and the thread must bite >= 3 mm into the post.

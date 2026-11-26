@@ -47,8 +47,7 @@ PORTS_PLUS_Y = {   # connector faces where they pass the wall (not the whole par
     "audio": (12.00, 18.00, 19.17 + SHIELD_DZ, 25.17 + SHIELD_DZ),
 }
 MICROSD = (14.41, 25.94, 3.29, 4.29)   # card under the board, sticks out on +Y (socket: official)
-MICROSD_CLEAR_X, MICROSD_CLEAR_Z = 1.5, 1.0   # notch margin beside / above the card
-MICROSD_FILL_GAP = 0.4             # base filler stops this far under the card
+MICROSD_CLEAR_X, MICROSD_CLEAR_Z = 1.5, 1.0   # window margin beside / above and below the card
 
 # --- Case parameters ---
 WALL = 2.0
@@ -169,8 +168,10 @@ def fan_grille(x0, depth):
 
 
 def microsd_notch():
-    x0, x1, _, z1 = MICROSD
-    return box(x0 - MICROSD_CLEAR_X, x1 + MICROSD_CLEAR_X, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + MICROSD_CLEAR_Z)
+    """Closed window in the +Y wall around the card. The card goes in after assembly."""
+    x0, x1, z0, z1 = MICROSD
+    return box(x0 - MICROSD_CLEAR_X, x1 + MICROSD_CLEAR_X, Y_IN[1] - 1, Y_OUT[1] + 1,
+               z0 - MICROSD_CLEAR_Z, z1 + MICROSD_CLEAR_Z)
 
 
 def antenna_axis():
@@ -208,7 +209,7 @@ def make_lid():
         lid -= box(w[0], w[1], Y_IN[1] - 1, Y_OUT[1] + 1, w[2], w[3])
     for k in ROUND_PORTS:
         lid -= round_window(PORTS_PLUS_Y[k], SHIELD_PORT_CLEAR)
-    # microSD: notch open to the bottom edge, so the lid slides down past the card
+    # microSD: closed window around the card; the card goes in after assembly
     lid -= microsd_notch()
 
     # -X wall: fan intake. Honeycomb of point-up hexagons: prints on a vertical wall
@@ -285,14 +286,7 @@ def make_base():
         base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PCB_BOTTOM_Z + 1)
     # standoffs near the -Y wall are cut flat at the plate edge
     base &= box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT - 1, PCB_BOTTOM_Z + 1)
-    # Filler for the microSD notch below the card: closes the wall gap, flush outside
-    return base + microsd_filler()
-
-
-def microsd_filler():
-    x0, x1, z0, _ = MICROSD
-    return box(x0 - MICROSD_CLEAR_X + FIT, x1 + MICROSD_CLEAR_X - FIT, Y_IN[1] - FIT - 0.2, Y_OUT[1],
-               Z_BOT, z0 - MICROSD_FILL_GAP)
+    return base
 
 
 if __name__ == "__main__":
