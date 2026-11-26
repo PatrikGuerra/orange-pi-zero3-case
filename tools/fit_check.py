@@ -7,7 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import case  # noqa: E402
 import official_board  # noqa: E402
-from build123d import Align, Cylinder, Pos, Rot  # noqa: E402
+from build123d import Align, Axis, Cylinder, Pos, Rot  # noqa: E402
 
 parts = {"lid": case.make_lid(), "base": case.make_base()}
 board = official_board.board_and_shield()
@@ -94,14 +94,25 @@ assert case.PLATE_TOP_Z <= fb.min.Z and fb.max.Z <= case.ROOF_IN, "fan does not 
 bite = case.BOARD_SCREW_L - (case.PCB_TOP_Z - case.Z_BOT)
 assert bite >= 6.0, f"M3 x {case.BOARD_SCREW_L:g} bites only {bite:.1f} mm into the towers"
 print(f"board screws: M3 x {case.BOARD_SCREW_L:g}, {bite:.1f} mm into the towers")
+# Print: plastic around each tapped hole, and bed chamfers present
+for d in case.TOWER_D:
+    assert (d - case.SCREW_TAP) / 2 >= 1.0, f"tower d {d} leaves under 1 mm around the M3 hole"
+assert (case.SHIELD_POST_D - case.SCREW_TAP) / 2 >= 1.5, "shield post wall under 1.5 mm"
+lb, bb = parts["lid"].bounding_box(), parts["base"].bounding_box()
+roof_face = parts["lid"].faces().sort_by(Axis.Z)[-1].bounding_box()
+assert roof_face.size.X <= lb.size.X - 2 * case.BED_CHAMFER + 0.01, "lid roof edge has no bed chamfer"
+base_face = parts["base"].faces().sort_by(Axis.Z)[0].bounding_box()
+assert base_face.size.X <= bb.size.X - 2 * case.BED_CHAMFER + 0.01, "base bottom edge has no bed chamfer"
+print(f"print: tower walls {min((d - case.SCREW_TAP) / 2 for d in case.TOWER_D):.2f} mm min, "
+      f"bed chamfer {case.BED_CHAMFER} mm on lid and base")
 
 # Antenna on the +Y face: tie holes and the cable hole clear of the other openings,
 # each tie's inside loop clear of the boards, antenna clear of the case
 ay, az = case.antenna_axis()
 w, hh = case.TIE_HOLE
 holes = case.tie_holes()
-sd_top = case.MICROSD[3] + 1.5
-sd_x = (case.MICROSD[0] - 1.5, case.MICROSD[1] + 1.5)
+sd_top = case.MICROSD[3] + case.MICROSD_CLEAR_Z
+sd_x = (case.MICROSD[0] - case.MICROSD_CLEAR_X, case.MICROSD[1] + case.MICROSD_CLEAR_X)
 usb_bottom = min(w_[2] for w_ in case.port_windows(case.PORTS_PLUS_Y, case.SHIELD_PORT_CLEAR))
 audio = case.PORTS_PLUS_Y["audio"]
 audio_r = max(audio[1] - audio[0], audio[3] - audio[2]) / 2 + case.SHIELD_PORT_CLEAR
@@ -125,7 +136,8 @@ assert hz + case.ANT_HOLE_D / 2 <= usb_bottom, "cable hole runs into the USB win
 assert hz + case.ANT_HOLE_D / 2 <= az - case.ANT_D / 2 + 1e-6, "cable hole is not under the antenna"
 if sd_x[0] < hx + case.ANT_HOLE_D / 2 and hx - case.ANT_HOLE_D / 2 < sd_x[1]:
     bridge = hz - case.ANT_HOLE_D / 2 - sd_top
-    assert bridge >= 0.6 - 1e-6, f"only {bridge:.2f} mm of wall between the cable hole and the microSD notch"
+    assert bridge >= 1.0 - 1e-6, f"only {bridge:.2f} mm of wall between the cable hole and the microSD notch"
+    print(f"cable hole: {bridge:.2f} mm of wall over the microSD notch")
 c = case.make_antenna() & parts["lid"]
 assert c is None or c.volume < 0.01, f"antenna hits the lid: {c.volume:.2f} mm3"
 # Cable hole: clear of the board and the shield, from the shield edge to the wall

@@ -10,7 +10,7 @@ Run: .venv/Scripts/python case.py  ->  out/lid.stl, out/base.stl, out/case.step
 import math
 from pathlib import Path
 from build123d import (Align, Axis, Box, Compound, Cylinder, Plane, Pos, RegularPolygon, Rot, Sketch,
-                       export_step, export_stl, extrude, fillet)
+                       chamfer, export_step, export_stl, extrude, fillet)
 
 # --- Board geometry ---
 # Main board: official Orange Pi file (oficial/pcb-assy_asm.stp), placed by tools/official_board.py.
@@ -47,6 +47,7 @@ PORTS_PLUS_Y = {   # connector faces where they pass the wall (not the whole par
     "audio": (12.00, 18.00, 19.17 + SHIELD_DZ, 25.17 + SHIELD_DZ),
 }
 MICROSD = (14.41, 25.94, 3.29, 4.29)   # card under the board, sticks out on +Y (socket: official)
+MICROSD_CLEAR_X, MICROSD_CLEAR_Z = 1.5, 1.0   # notch margin beside / above the card
 
 # --- Case parameters ---
 WALL = 2.0
@@ -74,6 +75,7 @@ FAN_HOLE_PITCH = 32.0              # fan screws from outside, M3 x 10 into the f
 GRILLE_D = 38.0                    # fan opening
 GRILLE_CELL, GRILLE_RIB = 6.0, 1.4 # hexagon flat-to-flat width, wall between cells
 CORNER_R = 3.0                     # outside vertical corners of the lid
+BED_CHAMFER = 0.5                  # chamfer on the edges that touch the bed (stops elephant foot)
 SCREW_TAP = 2.9                    # M3 self-tapping into PETG
 SCREW_PASS = 3.4
 ANT_D, ANT_L = 5.0, 60.0           # round whip antenna (guess, check with calipers)
@@ -167,7 +169,7 @@ def fan_grille(x0, depth):
 
 def microsd_notch():
     x0, x1, _, z1 = MICROSD
-    return box(x0 - 1.5, x1 + 1.5, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + 1.5)
+    return box(x0 - MICROSD_CLEAR_X, x1 + MICROSD_CLEAR_X, Y_IN[1] - 1, Y_OUT[1] + 1, Z_BOT - 1, z1 + MICROSD_CLEAR_Z)
 
 
 def antenna_axis():
@@ -193,7 +195,9 @@ def make_antenna():
 
 def make_lid():
     lid = box(*X_OUT, *Y_OUT, Z_BOT, Z_TOP)
-    lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R) - box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
+    lid = fillet(lid.edges().filter_by(Axis.Z), CORNER_R)
+    lid = chamfer(lid.edges().group_by(Axis.Z)[-1], BED_CHAMFER)   # roof is on the bed
+    lid -= box(*X_IN, *Y_IN, Z_BOT - 1, ROOF_IN)
     for w in port_windows(PORTS_MINUS_Y, PORT_CLEAR, MERGED_PORTS):
         lid -= box(w[0], w[1], Y_OUT[0] - 1, Y_IN[0] + 1, w[2], w[3])
     # +Y: the shield ports reach into the wall. The windows stay closed below; the PETG
@@ -272,6 +276,7 @@ def make_fan():
 
 def make_base():
     base = box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT, PLATE_TOP_Z)
+    base = chamfer(base.edges().group_by(Axis.Z)[0], BED_CHAMFER)   # bottom is on the bed
     for x, y in BOARD_HOLES:
         # Standoff with a through hole: the M3 x 16 goes base -> board -> tower. No head
         # counterbore: the holes sit too close to the plate edge; feet lift the heads.
