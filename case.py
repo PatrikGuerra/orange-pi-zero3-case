@@ -48,6 +48,7 @@ PORTS_PLUS_Y = {   # connector faces where they pass the wall (not the whole par
 }
 MICROSD = (14.41, 25.94, 3.29, 4.29)   # card under the board, sticks out on +Y (socket: official)
 MICROSD_CLEAR_X, MICROSD_CLEAR_Z = 1.5, 1.0   # notch margin beside / above the card
+MICROSD_FILL_GAP = 0.4             # base filler stops this far under the card
 
 # --- Case parameters ---
 WALL = 2.0
@@ -283,7 +284,15 @@ def make_base():
         base += cyl_z(x, y, STANDOFF_D, PLATE_TOP_Z, PCB_BOTTOM_Z)
         base -= cyl_z(x, y, SCREW_PASS, Z_BOT - 1, PCB_BOTTOM_Z + 1)
     # standoffs near the -Y wall are cut flat at the plate edge
-    return base & box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT - 1, PCB_BOTTOM_Z + 1)
+    base &= box(X_IN[0] + FIT, X_IN[1] - FIT, Y_IN[0] + FIT, Y_IN[1] - FIT, Z_BOT - 1, PCB_BOTTOM_Z + 1)
+    # Filler for the microSD notch below the card: closes the wall gap, flush outside
+    return base + microsd_filler()
+
+
+def microsd_filler():
+    x0, x1, z0, _ = MICROSD
+    return box(x0 - MICROSD_CLEAR_X + FIT, x1 + MICROSD_CLEAR_X - FIT, Y_IN[1] - FIT - 0.2, Y_OUT[1],
+               Z_BOT, z0 - MICROSD_FILL_GAP)
 
 
 if __name__ == "__main__":
